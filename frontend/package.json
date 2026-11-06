@@ -1,0 +1,22 @@
+{
+  "name": "molino-skill-web",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.8.2",
+    "bcryptjs": "^3.0.3",
+    "jose": "^6.2.15",
+    "next": "^15.5.4",
+    "postgres": "^4.0.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.13",
+    "tailwindcss": "^4.1.13"
+  }
+}
