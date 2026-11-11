@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { api, LEVELS, POSITIONS, formatJapaneseDate, formatJoin, levelClass } from "../../lib/api";
+import { api, LEVELS, LEVEL_MEANINGS, POSITIONS, formatJapaneseDate, formatJoin, levelClass } from "../../lib/api";
 
 const LEGEND = [
   [0, "未経験"],
@@ -91,6 +91,11 @@ export default function SkillMapPage() {
                 <span className={"inline-block h-3 w-3 rounded-sm " + (level === 0 ? "border border-stone-300 bg-white" : levelClass(level))} />
                 {label}
               </span>
+            ))}
+          </div>
+          <div className="space-y-1 px-4 pb-3 text-xs text-stone-600">
+            {LEVEL_MEANINGS.map((meaning, level) => meaning && (
+              <p key={level}><span className="font-medium text-stone-700">{LEVELS[level]}</span>　{meaning}</p>
             ))}
           </div>
           <div className="overflow-auto">

@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
+import jp.molino.skill.auth.AllowedUsers;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -14,9 +15,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
+    private final AllowedUsers allowedUsers;
 
-    public JwtAuthFilter(JwtService jwtService) {
+    public JwtAuthFilter(JwtService jwtService, AllowedUsers allowedUsers) {
         this.jwtService = jwtService;
+        this.allowedUsers = allowedUsers;
     }
 
     @Override
@@ -26,8 +29,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith("Bearer ") && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
                 String email = jwtService.parseEmail(header.substring(7));
-                var authentication = new UsernamePasswordAuthenticationToken(email, null, List.of());
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                if (allowedUsers.contains(email)) {
+                    var authentication = new UsernamePasswordAuthenticationToken(email, null, List.of());
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
             } catch (RuntimeException ignored) {
                 SecurityContextHolder.clearContext();
             }

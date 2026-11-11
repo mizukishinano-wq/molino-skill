@@ -58,12 +58,9 @@ public class SkillService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "保存するスキルがありません");
         }
         for (Map<String, Object> item : items) {
-            Long taskId = Long.valueOf(String.valueOf(item.get("taskId")));
-            int level = Integer.parseInt(String.valueOf(item.get("level")));
+            Long taskId = parseTaskId(item);
             taskService.find(taskId);
-            if (level < 0 || level > 3) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "習熟度は未登録、1、2、3から選んでください");
-            }
+            int level = parseLevel(item);
             var existing = skills.findByStaffIdAndTaskId(staffId, taskId);
             if (level == 0) {
                 existing.ifPresent(skills::delete);
@@ -86,6 +83,27 @@ public class SkillService {
             }
         }
         return staffSkills(staffId);
+    }
+
+    private Long parseTaskId(Map<String, Object> item) {
+        try {
+            return Long.valueOf(String.valueOf(item == null ? null : item.get("taskId")));
+        } catch (NumberFormatException exception) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "仕事が見つかりません");
+        }
+    }
+
+    private int parseLevel(Map<String, Object> item) {
+        int level;
+        try {
+            level = Integer.parseInt(String.valueOf(item.get("level")));
+        } catch (NumberFormatException exception) {
+            level = -1;
+        }
+        if (level < 0 || level > 3) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "習熟度は未登録、1、2、3から選んでください");
+        }
+        return level;
     }
 
     public Map<String, Object> map(String position, boolean newcomersOnly) {

@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api, LEVELS, POSITIONS } from "../../../../../lib/api";
+import { api, LEVELS, LEVEL_MEANINGS, POSITIONS } from "../../../../../lib/api";
 
 export default function SkillEditPage() {
   const { id } = useParams();
@@ -64,7 +64,12 @@ export default function SkillEditPage() {
           </div>
         ))}
       </section>
-      <p className="mt-3 text-xs text-stone-500">未登録を選ぶと、そのスキルは削除されます</p>
+      <div className="mt-3 space-y-1 text-xs text-stone-600">
+        {LEVEL_MEANINGS.map((meaning, level) => meaning && (
+          <p key={level}><span className="font-medium text-stone-700">{LEVELS[level]}</span>　{meaning}</p>
+        ))}
+        <p>未登録を選ぶと、そのスキルは削除されます。</p>
+      </div>
       <div className="mt-4 flex gap-2">
         <button className="rounded-md bg-[#1f6b4a] px-4 py-2 text-sm text-white" onClick={save}>まとめて保存</button>
         <button className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm" onClick={() => history.back()}>キャンセル</button>

@@ -12,6 +12,12 @@ const TASK_NAMES = {
   営業外: ["営業前・営業後・パソコン"],
 };
 const DATA_PATH = "molino-data.json";
+const MANAGER_EMAIL = "sato@example.com";
+// These values were committed to a public repository, so they must never be accepted again.
+const LEAKED_JWT_SECRET = "molino-skill-dev-secret-key-change-me-32b";
+const LEAKED_MANAGER_PASSWORD = "password123";
+const MIN_JWT_SECRET_LENGTH = 32;
+const MIN_MANAGER_PASSWORD_LENGTH = 12;
 
 let queue = Promise.resolve();
 
@@ -25,6 +31,25 @@ export class ApiError extends Error {
 
 function text(value) {
   return value == null ? "" : String(value).trim();
+}
+
+// Fail closed: without safe secrets the API refuses every request before touching any data.
+function assertSecureConfig() {
+  const secret = process.env.JWT_SECRET || "";
+  const password = process.env.MANAGER_PASSWORD || "";
+  const problems = [];
+  if (secret.length < MIN_JWT_SECRET_LENGTH || secret === LEAKED_JWT_SECRET) problems.push("JWT_SECRET");
+  if (password.length < MIN_MANAGER_PASSWORD_LENGTH || password === LEAKED_MANAGER_PASSWORD) problems.push("MANAGER_PASSWORD");
+  if (problems.length) {
+    console.error("Unsafe or missing environment variables: " + problems.join(", "));
+    throw new ApiError(503, "サーバーの設定が完了していません");
+  }
+}
+
+function isAllowedEmail(email) {
+  const normalized = text(email).toLowerCase();
+  if (normalized === MANAGER_EMAIL) return true;
+  return (process.env.ALLOWED_EMAILS || "").split(",").some((item) => text(item).toLowerCase() === normalized && normalized !== "");
 }
 
 function todayTokyo() {
@@ -69,7 +94,7 @@ function blankState() {
     state.nextId += 1;
     return list[list.length - 1].id;
   };
-  add(state.users, { name: "佐藤店長", email: "sato@example.com", passwordHash: bcrypt.hashSync("password123", 10) });
+  add(state.users, { name: "佐藤店長", email: MANAGER_EMAIL, passwordHash: bcrypt.hashSync(process.env.MANAGER_PASSWORD, 10) });
   const staffIds = {};
   for (const [name, position, joinDate, active] of [
     ["佐藤美咲", "ドリンク", "2023-04-01", true],
@@ -151,10 +176,11 @@ function repair(state) {
   if (!Array.isArray(state.tasks)) { state.tasks = []; changed = true; }
   if (!Array.isArray(state.skills)) { state.skills = []; changed = true; }
   if (!state.nextId) { state.nextId = 1; changed = true; }
-  const manager = state.users.find((user) => user.email === "sato@example.com");
-  if (!manager || !hashMatches(manager.passwordHash, "password123")) {
-    if (manager) manager.passwordHash = bcrypt.hashSync("password123", 10);
-    else state.users.push({ id: state.nextId++, name: "佐藤店長", email: "sato@example.com", passwordHash: bcrypt.hashSync("password123", 10) });
+  const manager = state.users.find((user) => user.email === MANAGER_EMAIL);
+  if (!manager || !hashMatches(manager.passwordHash, process.env.MANAGER_PASSWORD)) {
+    const passwordHash = bcrypt.hashSync(process.env.MANAGER_PASSWORD, 10);
+    if (manager) manager.passwordHash = passwordHash;
+    else state.users.push({ id: state.nextId++, name: "佐藤店長", email: MANAGER_EMAIL, passwordHash });
     changed = true;
   }
   if (state.staffs.length === 0 || state.tasks.length === 0) {
@@ -190,7 +216,7 @@ function withState(write, work) {
 }
 
 function secretKey() {
-  return new TextEncoder().encode(process.env.JWT_SECRET || "molino-skill-dev-secret-key-change-me-32b");
+  return new TextEncoder().encode(process.env.JWT_SECRET);
 }
 
 async function tokenFor(email) {
@@ -204,7 +230,7 @@ async function requireUser(request, state) {
   try {
     const { payload } = await jwtVerify(token, secretKey());
     const user = state.users.find((item) => item.email === payload.sub);
-    if (!user) throw new Error("missing");
+    if (!user || !isAllowedEmail(user.email)) throw new Error("not allowed");
     return user;
   } catch (error) {
     if (error instanceof ApiError) throw error;
@@ -224,6 +250,20 @@ function findTask(state, id) {
   return row;
 }
 
+function isRealDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
+function parseLevel(raw) {
+  const isScalar = typeof raw === "number" || typeof raw === "string";
+  const level = isScalar && /^[+-]?\d+$/.test(String(raw)) ? Number(raw) : NaN;
+  if (!Number.isInteger(level) || level < 0 || level > 3) throw new ApiError(400, "習熟度は未登録、1、2、3から選んでください");
+  return level;
+}
+
 function applyStaff(body) {
   const name = text(body.name);
   const position = text(body.position);
@@ -233,7 +273,7 @@ function applyStaff(body) {
   else if (name.length > 20) fields.name = "名前は20文字以内で入力してください";
   if (!POSITIONS.includes(position)) fields.position = "メインポジションを選んでください";
   if (!joinDate) fields.joinDate = "入店日を入力してください";
-  else   if (!/^\d{4}-\d{2}-\d{2}$/.test(joinDate)) fields.joinDate = "入店日の形式が正しくありません";
+  else if (!isRealDate(joinDate)) fields.joinDate = "入店日の形式が正しくありません";
   const note = text(body.note);
   if (note.length > 200) fields.note = "メモは200文字以内で入力してください";
   if (Object.keys(fields).length) throw new ApiError(400, "入力内容を確認してください", fields);
@@ -262,6 +302,7 @@ function taskMap(state, task) {
 }
 
 export function handleApi(request, path) {
+  assertSecureConfig();
   const method = request.method;
   const write = method !== "GET" && method !== "HEAD";
   return withState(write, async (state) => {
@@ -270,7 +311,7 @@ export function handleApi(request, path) {
     const body = write ? await request.json().catch(() => ({})) : {};
     if (!(head === "auth" && (id === "login" || id === "signup") && method === "POST")) await requireUser(request, state);
 
-    if (head === "auth" && id === "signup" && method === "POST") return signup(state, body);
+    if (head === "auth" && id === "signup" && method === "POST") throw new ApiError(403, "新規登録は停止しています。管理者に連絡してください");
     if (head === "auth" && id === "login" && method === "POST") return login(state, body);
     if (head === "auth" && id === "me" && method === "GET") {
       const user = await requireUser(request, state);
@@ -303,29 +344,11 @@ export function handleApi(request, path) {
   });
 }
 
-async function signup(state, body) {
-  const name = text(body.name);
-  const email = text(body.email);
-  const password = body.password == null ? "" : String(body.password);
-  const confirm = body.passwordConfirm == null ? "" : String(body.passwordConfirm);
-  const fields = {};
-  if (!name) fields.name = "名前を入力してください";
-  else if (name.length > 20) fields.name = "名前は20文字以内で入力してください";
-  if (!email) fields.email = "メールアドレスを入力してください";
-  else if (!email.includes("@") || email.startsWith("@") || email.endsWith("@")) fields.email = "メールアドレスの形式が正しくありません";
-  else if (state.users.some((user) => user.email === email)) fields.email = "このメールアドレスはすでに登録されています";
-  if (password.length < 8) fields.password = "パスワードは8文字以上で入力してください";
-  if (password !== confirm) fields.passwordConfirm = "パスワードが一致しません";
-  if (Object.keys(fields).length) throw new ApiError(400, "入力内容を確認してください", fields);
-  state.users.push({ id: state.nextId++, name, email, passwordHash: bcrypt.hashSync(password, 10) });
-  return { token: await tokenFor(email), name, email };
-}
-
 async function login(state, body) {
   const email = text(body.email);
   const password = body.password == null ? "" : String(body.password);
   const user = state.users.find((item) => item.email === email);
-  if (!user || !bcrypt.compareSync(password, user.passwordHash)) throw new ApiError(401, "メールアドレスまたはパスワードが正しくありません");
+  if (!user || !isAllowedEmail(user.email) || !bcrypt.compareSync(password, user.passwordHash)) throw new ApiError(401, "メールアドレスまたはパスワードが正しくありません");
   return { token: await tokenFor(user.email), name: user.name, email: user.email };
 }
 
@@ -421,13 +444,12 @@ function staffSkills(state, id) {
 
 function saveSkills(state, staffId, items) {
   findStaff(state, staffId);
-  if (!items) throw new ApiError(400, "保存するスキルがありません");
+  if (!Array.isArray(items)) throw new ApiError(400, "保存するスキルがありません");
   const today = todayTokyo();
   for (const item of items) {
-    const taskId = Number(item.taskId);
-    const level = Number(item.level);
+    const taskId = Number(item?.taskId);
     findTask(state, taskId);
-    if (level < 0 || level > 3) throw new ApiError(400, "習熟度は未登録、1、2、3から選んでください");
+    const level = parseLevel(item.level);
     const index = state.skills.findIndex((skill) => skill.staffId === Number(staffId) && skill.taskId === taskId);
     if (level === 0) {
       if (index >= 0) state.skills.splice(index, 1);
