@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { get, put } from "@vercel/blob";
 
-const POSITIONS = ["ドリンク", "フリー", "デシャップ", "入口", "8階", "営業外"];
+const POSITIONS = ["朝食", "ドリンク", "フリー", "デシャップ", "入口", "8階", "営業外"];
 const TASK_NAMES = {
   ドリンク: ["生ビール", "サワー・ハイボール", "カクテル", "マシン飲料（紅茶・コーヒー・カフェオレ）", "ラテ系（抹茶・キャラメル）", "準備・補充"],
   フリー: ["オーダー取り", "料理説明", "配膳", "バッシング", "フロア対応"],

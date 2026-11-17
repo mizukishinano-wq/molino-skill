@@ -1,4 +1,4 @@
-export const POSITIONS = ["ドリンク", "フリー", "デシャップ", "入口", "8階", "営業外"];
+export const POSITIONS = ["朝食", "ドリンク", "フリー", "デシャップ", "入口", "8階", "営業外"];
 export const LEVELS = ["未経験", "教わった", "1人でできる", "教えられる"];
 export const LEVEL_MEANINGS = [
   "",
