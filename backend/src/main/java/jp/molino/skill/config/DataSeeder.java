@@ -37,6 +37,7 @@ public class DataSeeder implements CommandLineRunner {
         if (users.count() == 0) {
             seed();
         }
+        migrateBreakfastTasks();
         migrateDrinkTasks();
         migrateFreeTasks();
         migrateDeshapTasks();
@@ -117,6 +118,15 @@ public class DataSeeder implements CommandLineRunner {
         skill(takahashi, check, 2, "2026-05-20");
         skill(kobayashi, bussing, 1, "2026-10-04");
         skill(sato, reserve, 2, "2026-04-12");
+    }
+
+    private void migrateBreakfastTasks() {
+        ensureTask("オープン（レジ・朝食並べ・ドリンク）", "朝食");
+        ensureTask("ご案内", "朝食");
+        ensureTask("料理出し・補充（料理・ドリンク）", "朝食");
+        ensureTask("下げ膳・洗い物", "朝食");
+        ensureTask("優先順位の判断", "朝食");
+        ensureTask("ランチ準備（台車・シルバー・洗い物片付け・8タン拭き）", "朝食");
     }
 
     private void migrateDrinkTasks() {
