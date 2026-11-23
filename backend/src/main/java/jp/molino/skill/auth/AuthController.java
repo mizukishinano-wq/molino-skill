@@ -17,8 +17,8 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public Map<String, String> signup() {
-        return authService.signup();
+    public Map<String, String> signup(@RequestBody(required = false) Map<String, String> body) {
+        return authService.signup(body == null ? Map.of() : body);
     }
 
     @PostMapping("/login")

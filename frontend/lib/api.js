@@ -1,4 +1,8 @@
-export const POSITIONS = ["朝食", "ドリンク", "フリー", "デシャップ", "入口", "8階", "ディナー", "営業外"];
+// デモ環境では架空の会社名を表示するため、環境変数で切り替える（ビルド時に埋め込まれる）
+export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "ホテルモリノ";
+export const SIGNUP_ENABLED = process.env.NEXT_PUBLIC_SIGNUP_ENABLED === "true";
+
+export const POSITIONS =["朝食", "ドリンク", "フリー", "デシャップ", "入口", "8階", "ディナー", "営業外"];
 export const LEVELS = ["未経験", "教わった", "1人でできる", "教えられる"];
 export const LEVEL_MEANINGS = [
   "",

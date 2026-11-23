@@ -1,8 +1,9 @@
 import "./globals.css";
 import Shell from "../components/Shell";
+import { APP_NAME } from "../lib/api";
 
 export const metadata = {
-  title: "ホテルモリノ スキルチェック",
+  title: APP_NAME + " スキルチェック",
 };
 
 export default function RootLayout({ children }) {

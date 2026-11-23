@@ -61,16 +61,13 @@ export default function SkillMapPage() {
 
   return (
     <div>
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">ホールスタッフのスキルマップ</h1>
-          <p className="mt-1 text-sm text-stone-500">できる仕事を、ひと目で。配置や教える人を決めるときに確認しましょう。</p>
-        </div>
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h1 className="text-xl font-bold">ホールスタッフのスキルマップ</h1>
         <div className="text-sm text-stone-500">
           最終更新：{data?.updatedOn ? formatJapaneseDate(data.updatedOn) : "—"}
         </div>
       </div>
-      <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+      <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
         {["全て", ...POSITIONS].map((item) => (
           <button key={item} className={"shrink-0 rounded-lg px-4 py-2 text-sm " + (position === item ? "bg-[#1f6b4a] text-white" : "border border-stone-300 bg-white")} onClick={() => setPosition(item)}>{item}</button>
         ))}
@@ -81,30 +78,31 @@ export default function SkillMapPage() {
       </div>
       {!data ? <p>読み込み中...</p> : (
         <section className="overflow-hidden rounded-xl border border-stone-200 bg-white">
-          <div className="flex items-center justify-between px-4 py-3">
-            <h2 className="font-bold">{heading} <span className="ml-2 text-sm font-normal text-stone-500">{data.tasks.length}仕事</span></h2>
-            <span className="text-sm text-stone-500">スタッフ {data.staffs.length}名</span>
-          </div>
-          <div className="flex gap-4 px-4 pb-3 text-xs text-stone-600">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 text-xs text-stone-600">
+            <h2 className="text-base font-bold text-stone-900">{heading} <span className="ml-1 text-sm font-normal text-stone-500">{data.tasks.length}仕事・スタッフ {data.staffs.length}名</span></h2>
             {LEGEND.map(([level, label]) => (
               <span key={label} className="flex items-center gap-1">
                 <span className={"inline-block h-3 w-3 rounded-sm " + (level === 0 ? "border border-stone-300 bg-white" : levelClass(level))} />
                 {label}
               </span>
             ))}
+            <details className="w-full sm:w-auto">
+              <summary className="cursor-pointer text-[#1f6b4a]">習熟度の意味</summary>
+              <div className="mt-2 space-y-1">
+                {LEVEL_MEANINGS.map((meaning, level) => meaning && (
+                  <p key={level}><span className="font-medium text-stone-700">{LEVELS[level]}</span>　{meaning}</p>
+                ))}
+              </div>
+            </details>
           </div>
-          <div className="space-y-1 px-4 pb-3 text-xs text-stone-600">
-            {LEVEL_MEANINGS.map((meaning, level) => meaning && (
-              <p key={level}><span className="font-medium text-stone-700">{LEVELS[level]}</span>　{meaning}</p>
-            ))}
-          </div>
-          <div className="overflow-auto">
+          {/* 縦横どちらにスクロールしても、スタッフ名の列と仕事名の行が見えるように固定する */}
+          <div className="max-h-[calc(100vh-13rem)] overflow-auto border-t">
             <table className="min-w-full text-sm">
-              <thead className="bg-stone-50 text-stone-600">
+              <thead className="sticky top-0 z-20 bg-stone-50 text-stone-600">
                 <tr>
-                  <th className="p-3 text-left font-normal">スタッフ名</th>
+                  <th className="sticky left-0 z-30 bg-stone-50 p-3 text-left font-normal">スタッフ名</th>
                   {data.tasks.map((task) => (
-                    <th key={task.id} className="p-3 text-center font-normal">
+                    <th key={task.id} className="min-w-28 p-2 text-center font-normal">
                       <Link className="text-[#1f6b4a]" href={"/tasks/" + task.id}>{task.name}</Link>
                       <div className="text-xs text-stone-400">{task.capableCount}人/{data.staffs.length}名</div>
                     </th>
@@ -114,20 +112,21 @@ export default function SkillMapPage() {
               <tbody>
                 {data.staffs.map((staff) => (
                   <tr key={staff.id} className="border-t">
-                    <td className="p-3">
-                      <Link className="text-[#1f6b4a]" href={"/staffs/" + staff.id}>{staff.name}</Link>
+                    <td className="sticky left-0 z-10 bg-white px-3 py-2">
+                      <Link className="whitespace-nowrap text-[#1f6b4a]" href={"/staffs/" + staff.id}>{staff.name}</Link>
                       {staff.newcomer && <span className="ml-2 rounded bg-[#e5f5ec] px-1.5 py-0.5 text-xs text-[#1f6b4a]">新人</span>}
-                      <div className="text-xs text-stone-400">{formatJoin(staff.joinDate)} / {staff.position}</div>
-                      <div className="mt-2 flex items-end gap-2">
-                        <textarea
-                          className="w-52 rounded-md border border-stone-300 bg-white px-2 py-1 text-xs"
-                          rows={2}
+                      <div className="whitespace-nowrap text-xs text-stone-400">{formatJoin(staff.joinDate)} / {staff.position}</div>
+                      <div className="mt-1 flex items-center gap-1">
+                        <input
+                          className="w-36 rounded-md border border-stone-300 bg-white px-2 py-1 text-xs"
                           maxLength={200}
                           placeholder="コメント"
+                          aria-label={staff.name + "さんのコメント"}
                           value={notes[staff.id] ?? ""}
                           onChange={(event) => setNotes({ ...notes, [staff.id]: event.target.value })}
+                          onKeyDown={(event) => { if (event.key === "Enter") saveNote(staff); }}
                         />
-                        <button type="button" className="shrink-0 rounded-md bg-[#1f6b4a] px-3 py-2 text-xs font-medium text-white" onClick={() => saveNote(staff)}>保存</button>
+                        <button type="button" className="shrink-0 rounded-md bg-[#1f6b4a] px-2 py-1 text-xs font-medium text-white" onClick={() => saveNote(staff)}>保存</button>
                       </div>
                       {noteMessage[staff.id] && <p className="mt-1 text-xs font-medium text-[#1f6b4a]">{noteMessage[staff.id]}</p>}
                     </td>

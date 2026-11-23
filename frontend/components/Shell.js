@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api } from "../lib/api";
+import { api, APP_NAME } from "../lib/api";
 
 const LINKS = [
   ["/skill-map", "スキルマップ"],
@@ -40,7 +40,7 @@ export default function Shell({ children }) {
                 <path d="M4 2.5v7.2a2.2 2.2 0 1 0 1.4 2.05V2.5H4Zm6.6 0v7.2a2.2 2.2 0 1 0 1.4 2.05V2.5h-1.4Z" fill="currentColor" />
               </svg>
             </span>
-            ホテルモリノ
+            {APP_NAME}
           </div>
           <nav className="hidden gap-8 text-sm md:flex">
             {LINKS.map(([href, label]) => (
