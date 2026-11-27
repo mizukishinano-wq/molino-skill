@@ -33,11 +33,17 @@ export default function TaskEditPage() {
       <Card className="mx-auto max-w-2xl p-8">
         <form onSubmit={submit}>
           <Field label="仕事名" required error={fields.name}>
-            <input className={inputClass + (fields.name ? " border-red-400" : "")} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+            <input
+              className={inputClass + (fields.name ? " border-red-400" : "")}
+              value={form.name}
+              onChange={(event) => setForm({ ...form, name: event.target.value })}
+            />
           </Field>
           <Field label="ポジション" required>
             <select className={inputClass} value={form.position} onChange={(event) => setForm({ ...form, position: event.target.value })}>
-              {POSITIONS.map((item) => <option key={item}>{item}</option>)}
+              {POSITIONS.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
             </select>
           </Field>
           <div className="mt-6 flex gap-2">

@@ -1,0 +1,22 @@
+---
+description: molino-skill（飲食店ホールスタッフのスキルチェックアプリ）の開発ルール
+alwaysApply: true
+---
+
+# プロジェクトの概要
+
+- 店長がスタッフごと・仕事ごとの習熟度を記録し、スキルマップで確認するアプリ。UI とエラーメッセージは日本語
+- フロントエンド: Next.js 15（App Router）、React 19、Tailwind CSS v4、JavaScript（TypeScript は使わない）
+- バックエンド: Spring Boot 3.5（Java 21）、Spring Security、Spring Data JPA、JWT
+- データ: ローカルは H2、デモは PostgreSQL（Render）、実店舗向けは Vercel Blob
+
+# 守ること
+
+- API と業務ルールは `backend/src/main/java/jp/molino/skill/` と `frontend/lib/server/data.js` の2か所で実装している。変更するときは両方を同じ仕様にする（ルート、レスポンス形式、検証、日本語メッセージ）
+- エラーは `{ message, fields }` の形式で返す。Java は `ApiException`、JS は `ApiError` を投げる
+- 入力チェックはサーバー側で必ず行う。画面側のチェックは使いやすさのためだけ
+- 秘密情報（パスワード、署名鍵、DB の接続情報、API キー）はコードに書かず、環境変数で管理する。このリポジトリは公開されている
+- 新しい API を追加するときは、認証が必要かを確認する。認証なしで呼べるのは login と signup だけ
+- 業務ルール: 習熟度は 0（未登録）〜3。「できる人」は習熟度2以上かつ在籍中。新人は入店から3か月以内（当日を含む）で、保存せず読み出し時に計算する
+- フロントの整形は Prettier（`npm run format`）。インデントは JS が2、Java が4
+- 既存の命名と設計を尊重し、変更範囲は必要最小限にする

@@ -22,9 +22,11 @@ export default function Shell({ children }) {
       window.location.href = "/login";
       return;
     }
-    api("/api/auth/me").then(setMe).catch(() => {
-      window.location.href = "/login";
-    });
+    api("/api/auth/me")
+      .then(setMe)
+      .catch(() => {
+        window.location.href = "/login";
+      });
   }, [publicPage, path]);
 
   if (publicPage) return children;

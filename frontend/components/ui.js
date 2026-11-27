@@ -13,11 +13,19 @@ export function Field({ label, required, hint, error, children }) {
 }
 
 export function PrimaryButton({ children, type = "submit" }) {
-  return <button type={type} className="rounded-md bg-[#1f6b4a] px-4 py-2 text-sm text-white">{children}</button>;
+  return (
+    <button type={type} className="rounded-md bg-[#1f6b4a] px-4 py-2 text-sm text-white">
+      {children}
+    </button>
+  );
 }
 
 export function GhostButton({ children, onClick, type = "button" }) {
-  return <button type={type} className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm" onClick={onClick}>{children}</button>;
+  return (
+    <button type={type} className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm" onClick={onClick}>
+      {children}
+    </button>
+  );
 }
 
 export function Card({ children, className = "" }) {

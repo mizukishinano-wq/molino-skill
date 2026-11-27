@@ -4,19 +4,21 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@vercel/blob": "^2.8.2",
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.15",
     "next": "^15.5.4",
-    "postgres": "^4.0.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.13",
+    "prettier": "^3.10.1",
     "tailwindcss": "^4.1.13"
   }
 }

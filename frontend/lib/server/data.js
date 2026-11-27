@@ -4,7 +4,14 @@ import { get, put } from "@vercel/blob";
 
 const POSITIONS = ["朝食", "ドリンク", "フリー", "デシャップ", "入口", "8階", "ディナー", "営業外"];
 const TASK_NAMES = {
-  朝食: ["オープン（レジ・朝食並べ・ドリンク）", "ご案内", "料理出し・補充（料理・ドリンク）", "下げ膳・洗い物", "優先順位の判断", "ランチ準備（台車・シルバー・洗い物片付け・8タン拭き）"],
+  朝食: [
+    "オープン（レジ・朝食並べ・ドリンク）",
+    "ご案内",
+    "料理出し・補充（料理・ドリンク）",
+    "下げ膳・洗い物",
+    "優先順位の判断",
+    "ランチ準備（台車・シルバー・洗い物片付け・8タン拭き）",
+  ],
   ドリンク: ["生ビール", "サワー・ハイボール", "カクテル", "マシン飲料（紅茶・コーヒー・カフェオレ）", "ラテ系（抹茶・キャラメル）", "準備・補充"],
   フリー: ["オーダー取り", "料理説明", "配膳", "バッシング", "フロア対応"],
   デシャップ: ["アレルギー・皿チェック", "指示出し", "先読み"],
@@ -107,7 +114,8 @@ function blankState() {
     ["中村結衣", "8階", "2026-09-15", true],
     ["小林翔", "フリー", "2026-10-01", true],
     ["渡辺修", "入口", "2022-06-01", false],
-  ]) staffIds[name] = add(state.staffs, { name, position, joinDate, active });
+  ])
+    staffIds[name] = add(state.staffs, { name, position, joinDate, active });
   const taskIds = {};
   for (const [position, names] of Object.entries(TASK_NAMES)) {
     for (const name of names) taskIds[name] = add(state.tasks, { name, position });
@@ -139,7 +147,8 @@ function blankState() {
     ["中村結衣", "マシン飲料（紅茶・コーヒー・カフェオレ）", 1, "2026-10-05"],
     ["小林翔", "生ビール", 1, "2026-10-03"],
     ["小林翔", "バッシング", 1, "2026-10-04"],
-  ]) state.skills.push({ id: state.nextId++, staffId: staffIds[person], taskId: taskIds[task], level, updatedOn });
+  ])
+    state.skills.push({ id: state.nextId++, staffId: staffIds[person], taskId: taskIds[task], level, updatedOn });
   return state;
 }
 
@@ -172,11 +181,26 @@ function hashMatches(hash, password) {
 
 function repair(state) {
   let changed = false;
-  if (!Array.isArray(state.users)) { state.users = []; changed = true; }
-  if (!Array.isArray(state.staffs)) { state.staffs = []; changed = true; }
-  if (!Array.isArray(state.tasks)) { state.tasks = []; changed = true; }
-  if (!Array.isArray(state.skills)) { state.skills = []; changed = true; }
-  if (!state.nextId) { state.nextId = 1; changed = true; }
+  if (!Array.isArray(state.users)) {
+    state.users = [];
+    changed = true;
+  }
+  if (!Array.isArray(state.staffs)) {
+    state.staffs = [];
+    changed = true;
+  }
+  if (!Array.isArray(state.tasks)) {
+    state.tasks = [];
+    changed = true;
+  }
+  if (!Array.isArray(state.skills)) {
+    state.skills = [];
+    changed = true;
+  }
+  if (!state.nextId) {
+    state.nextId = 1;
+    changed = true;
+  }
   const manager = state.users.find((user) => user.email === MANAGER_EMAIL);
   if (!manager || !hashMatches(manager.passwordHash, process.env.MANAGER_PASSWORD)) {
     const passwordHash = bcrypt.hashSync(process.env.MANAGER_PASSWORD, 10);
@@ -212,7 +236,10 @@ function withState(write, work) {
     if (write) await saveState(state);
     return result;
   });
-  queue = run.then(() => {}, () => {});
+  queue = run.then(
+    () => {},
+    () => {},
+  );
   return run;
 }
 
@@ -298,7 +325,9 @@ function applyTask(state, body, currentId) {
 }
 
 function taskMap(state, task) {
-  const capableCount = state.skills.filter((skill) => skill.taskId === task.id && skill.level >= 2 && state.staffs.find((staff) => staff.id === skill.staffId && staff.active)).length;
+  const capableCount = state.skills.filter(
+    (skill) => skill.taskId === task.id && skill.level >= 2 && state.staffs.find((staff) => staff.id === skill.staffId && staff.active),
+  ).length;
   return { id: task.id, name: task.name, position: task.position, capableCount };
 }
 
@@ -318,7 +347,8 @@ export function handleApi(request, path) {
       const user = await requireUser(request, state);
       return { name: user.name, email: user.email };
     }
-    if (head === "skill-map" && method === "GET") return skillMap(state, url.searchParams.get("position") || "全て", url.searchParams.get("newcomersOnly") === "true");
+    if (head === "skill-map" && method === "GET")
+      return skillMap(state, url.searchParams.get("position") || "全て", url.searchParams.get("newcomersOnly") === "true");
     if (head === "staffs" && !id && method === "GET") return listStaff(state, url);
     if (head === "staffs" && !id && method === "POST") return createStaff(state, body);
     if (head === "staffs" && id && !tail && method === "GET") return staffMap(findStaff(state, id));
@@ -349,7 +379,8 @@ async function login(state, body) {
   const email = text(body.email);
   const password = body.password == null ? "" : String(body.password);
   const user = state.users.find((item) => item.email === email);
-  if (!user || !isAllowedEmail(user.email) || !bcrypt.compareSync(password, user.passwordHash)) throw new ApiError(401, "メールアドレスまたはパスワードが正しくありません");
+  if (!user || !isAllowedEmail(user.email) || !bcrypt.compareSync(password, user.passwordHash))
+    throw new ApiError(401, "メールアドレスまたはパスワードが正しくありません");
   return { token: await tokenFor(user.email), name: user.name, email: user.email };
 }
 
@@ -433,7 +464,12 @@ function staffSkills(state, id) {
     .filter((skill) => skill.staffId === Number(id))
     .map((skill) => ({ skill, task: state.tasks.find((item) => item.id === skill.taskId) }))
     .filter((entry) => entry.task)
-    .sort((a, b) => POSITIONS.indexOf(a.task.position) - POSITIONS.indexOf(b.task.position) || b.skill.level - a.skill.level || a.task.name.localeCompare(b.task.name, "ja"))
+    .sort(
+      (a, b) =>
+        POSITIONS.indexOf(a.task.position) - POSITIONS.indexOf(b.task.position) ||
+        b.skill.level - a.skill.level ||
+        a.task.name.localeCompare(b.task.name, "ja"),
+    )
     .map((entry) => ({
       taskId: entry.task.id,
       taskName: entry.task.name,

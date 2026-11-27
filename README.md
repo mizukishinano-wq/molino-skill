@@ -6,57 +6,108 @@
 
 ※ 画面のスタッフ名は架空のものです。
 
+## デモ
+
+| 項目 | 内容 |
+| --- | --- |
+| URL | https://nexora-skill.vercel.app |
+| デモアカウント | メール `sato@example.com` / パスワード `password123` |
+| 新規登録 | ログイン画面の「新規登録」から、誰でもアカウントを作成できます |
+
+- デモ環境は架空の会社「Nexora」として、架空のスタッフとスキルのデータを入れています。実在の店舗のデータは含みません
+- デモのデータは、ログインした全員で共有しています。個人情報は入力しないでください
+- バックエンドは Render の無料プランで動いているため、しばらく使われていないと停止します。最初のアクセスで「サーバーに接続できませんでした」と表示された場合は、1〜2分待ってから開き直してください
+
+## 要件定義
+
+### 背景と課題
+
+飲食店のホールでは、ドリンク、デシャップ、入口などのポジションごとに多くの仕事があります。スタッフの入れ替わりも多く、「誰がどの仕事をどこまでできるか」が社員の頭の中にしかないため、次のような困りごとがありました。
+
+- シフトを組むときや仕事を任せるときに、任せられる人がすぐに分からない
+- 新人に誰が教えればよいか、次に何を教えればよいかが分からない
+- 育成の状況を社員の間で共有しにくい
+
+### 対象ユーザー
+
+- **主な利用者**: スタッフの育成と管理をする社員（店長など）
+- 今後の予定: アルバイトスタッフが自分のスキルを閲覧できる機能
+
+### このアプリで解決すること
+
+- スタッフ × 仕事の習熟度を1枚の表（スキルマップ）にして、「誰が何をどこまでできるか」を一目で分かるようにする
+- 仕事ごとに「できる人」を一覧し、仕事を任せる人や教える人を選びやすくする
+- 入店3か月以内の新人を絞り込み、育成の状況を確認しやすくする
+- スキルを1画面でまとめて登録・変更でき、記録の手間を減らす
+
 ## 主な機能
 
-- **スキルマップ**: スタッフ × 仕事の習熟度を表で一覧表示
-- **スタッフ管理**: 登録・編集・退職処理。入社から3か月以内のスタッフは「新人」として表示
-- **仕事管理**: 仕事の一覧と、その仕事を「できる人」（習熟度2以上・在籍中）の人数
-- **習熟度の記録**: 4段階で記録し、変更した日を残す
+- **新規登録・ログイン・ログアウト**: JWT による認証。ログインしていない場合はログイン画面へ移動
+- **スキルマップ**: スタッフ × 仕事の習熟度を表で一覧表示。ポジションの切り替え、新人のみの表示、スタッフごとのコメント
+- **スタッフ管理**: 登録・編集・削除、名前検索、ポジションでの絞り込み、退職者の表示切り替え。入店から3か月以内のスタッフは「新人」として表示
+- **スキルの一括編集**: スタッフ1人分の習熟度を1画面でまとめて登録・変更
+- **仕事管理**: 登録・編集・削除、ポジションでの絞り込み。仕事ごとに「できる人」（習熟度2以上・在籍中）を一覧し、習熟度で絞り込み
+- **入力チェック**: サーバー側で検証し、項目ごとに日本語のエラーメッセージを表示
 
 | 習熟度 | 意味 |
 | --- | --- |
 | 0 | 未経験 |
-| 1 | 教わった |
-| 2 | 1人でできる |
-| 3 | 教えられる |
+| 1 | 教わった（やり方は習った。まだ一人には任せず、見守りが必要） |
+| 2 | 1人でできる（言われなくても、その仕事を一人でやり切れる） |
+| 3 | 教えられる（ほかの人に教えて、一人でできる状態まで育てられる） |
 
 ## 技術構成
 
 | 領域 | 技術 |
 | --- | --- |
 | フロントエンド | Next.js 15（App Router）、React 19、Tailwind CSS v4、JavaScript |
-| バックエンド（ローカル開発） | Spring Boot 3.5、Spring Security、Spring Data JPA、H2 Database |
-| バックエンド（本番） | Next.js の API Route + Vercel Blob |
-| 認証 | JWT（Bearer トークン） |
-| ホスティング | Vercel |
+| バックエンド | Java 21、Spring Boot 3.5、Spring Security、Spring Data JPA、jjwt（JWT） |
+| データベース | PostgreSQL（デモ環境）、H2 Database（ローカル開発） |
+| 認証 | JWT（Bearer トークン）、パスワードは BCrypt でハッシュ化 |
+| ホスティング | Vercel（フロントエンド）、Render（バックエンド、Docker） |
+
+## 使用している外部サービス
+
+| サービス | 用途 |
+| --- | --- |
+| [Vercel](https://vercel.com) | Next.js の公開。GitHub の `main` ブランチへの push で自動デプロイ |
+| [Render](https://render.com) | Spring Boot の公開（Docker）と PostgreSQL |
+| [Vercel Blob](https://vercel.com/docs/vercel-blob) | 実店舗向けの環境のデータ保存（下の「2つの環境」を参照） |
 
 ## アーキテクチャ
 
-ブラウザは Next.js の `/api/*` だけを呼び出します。環境変数 `BLOB_STORE_ID` の有無で処理先が切り替わります。
+ブラウザは Next.js の `/api/*` だけを呼び出し、Next.js（`frontend/app/api/[...path]/route.js`）が環境変数に応じて処理先を切り替えます。
 
 ```
-ブラウザ ──> Next.js /api/*（frontend/app/api/[...path]/route.js）
-                │
-                ├─ BLOB_STORE_ID なし（ローカル）──> Spring Boot（localhost:8080）──> H2
-                └─ BLOB_STORE_ID あり（Vercel） ──> frontend/lib/server/data.js ──> Vercel Blob
+【デモ環境】
+ブラウザ ──> Vercel（Next.js） ──> Render（Spring Boot） ──> PostgreSQL
+
+【実店舗向けの環境】
+ブラウザ ──> Vercel（Next.js） ──> frontend/lib/server/data.js ──> Vercel Blob
+
+【ローカル開発】
+ブラウザ ──> Next.js（localhost:3000） ──> Spring Boot（localhost:8080） ──> H2
 ```
 
-同じAPIを Java と JavaScript の2つで実装しているため、APIや業務ルールを変更するときは両方を修正します。
+| 環境変数 | 処理先 |
+| --- | --- |
+| `BLOB_STORE_ID` あり | `frontend/lib/server/data.js`（JavaScript）と Vercel Blob |
+| `BLOB_STORE_ID` なし | `BACKEND_URL`（未設定なら `localhost:8080`）の Spring Boot |
 
-### なぜ2つのバックエンドがあるのか
+### 2つの環境がある理由
 
-- **ローカル（Spring Boot）**: スクールで学んだ Java を実際に動くアプリで使い、controller / service / repository に分けた業務システムの構成を学ぶために実装しています。
-- **本番（Vercel）**: Vercel では Spring Boot のような常に起動しているサーバーを動かせません。また、Java を別のサービスで動かすと、無料プランでは停止後の起動待ちやデータ消失の心配があります。そこで、費用をかけずに安定して運用できるよう、本番用は JavaScript と Vercel Blob で実装しました。
+- **デモ環境（Java）**: スクールで学んだ Java を実際に公開して使い、controller / service / repository に分けた業務システムの構成と、PostgreSQL によるデータ管理を学ぶために構築しています。就職活動で見せるため、架空の会社のデータで動かしています
+- **実店舗向けの環境（JavaScript）**: アルバイト先で実際に使ってもらうため、先に Vercel だけで動く形で公開しました。Vercel では Spring Boot のような常に起動しているサーバーを動かせないため、API を Next.js の API Route で実装し、データを Vercel Blob に保存しています
 
-修正のたびに両方を直す手間はかかりますが、同じ仕様を2つの言語で実装することで、言語に依存しない設計の考え方を学べています。機能が増えて保守の負担が大きくなった場合は、どちらか一方に統一することを検討します。
+同じ API を2つの言語で実装しているため、修正のたびに両方を直す手間があります。今後は Java（Spring Boot）と PostgreSQL に一本化する予定です。
 
 ## ローカルでの起動方法
 
 ### 必要なもの
 
 - Node.js（Next.js 15 が動くバージョン）
-- JDK 21（Gradle の実行用。アプリ本体は Java 25 の toolchain でビルドされます）
-- Gradle 8.14（Gradle Wrapper は同梱していません）
+- JDK 21
+- Gradle 8.14（Gradle Wrapper は同梱していません。Gradle 8.14 は JDK 17〜24 で動かします）
 
 ### 1. バックエンドを起動
 
@@ -65,7 +116,7 @@ cd backend
 gradle bootRun     # http://localhost:8080
 ```
 
-初回起動時に初期データが作成されます。データは `backend/data/` に保存されます（Git 管理外）。
+初回起動時に初期データが作成されます。データは `backend/data/` に保存されます（Git 管理外）。環境変数 `JWT_SECRET` を設定しない場合は、起動ごとに一時的な署名鍵を作るため、再起動するとログインし直しになります。
 
 ### 2. フロントエンドを起動
 
@@ -77,35 +128,55 @@ npm run dev        # http://localhost:3000
 
 ### 3. ログイン
 
-ローカル環境のみ、次の開発用アカウントでログインできます。本番環境ではこのパスワードは使えません。
+ローカル環境とデモ環境では、次のアカウントでログインできます。実店舗向けの環境ではこのパスワードは使えません。
 
 - メール: `sato@example.com`
 - パスワード: `password123`
 
-## 環境変数（本番 / Vercel）
+## 環境変数
+
+秘密情報はリポジトリに含めず、各サービスの環境変数で管理しています。
+
+### バックエンド（Render）
 
 | 変数名 | 必須 | 説明 |
 | --- | --- | --- |
-| `BLOB_STORE_ID` | ○ | Vercel Blob のストアID。設定すると Blob モードで動作 |
-| `JWT_SECRET` | ○ | JWT の署名鍵（32文字以上） |
-| `MANAGER_PASSWORD` | ○ | 店長アカウントのパスワード（12文字以上） |
-| `ALLOWED_EMAILS` | | ログインを許可する追加のメールアドレス（カンマ区切り） |
+| `DATABASE_URL` | ○ | JDBC 形式の接続先（例: `jdbc:postgresql://ホスト:5432/DB名`）。未設定ならローカルの H2 |
+| `DATABASE_USERNAME` | ○ | データベースのユーザー名 |
+| `DATABASE_PASSWORD` | ○ | データベースのパスワード |
+| `JWT_SECRET` | ○ | JWT の署名鍵（32文字以上）。短い値や公開済みの値では起動しません |
+| `OPEN_SIGNUP` | | `true` で新規登録を有効にする（デモ環境） |
+| `ALLOWED_EMAILS` | | 新規登録が無効のとき、ログインを許可する追加のメールアドレス（カンマ区切り） |
 
-秘密情報はリポジトリに含めず、Vercel の環境変数で管理しています。
+### フロントエンド（Vercel）
+
+| 変数名 | 対象 | 説明 |
+| --- | --- | --- |
+| `BACKEND_URL` | デモ | Spring Boot の URL |
+| `NEXT_PUBLIC_APP_NAME` | デモ | 画面に表示する会社名（未設定なら「ホテルモリノ」） |
+| `NEXT_PUBLIC_SIGNUP_ENABLED` | デモ | `true` で新規登録画面とリンクを表示 |
+| `BLOB_STORE_ID` | 実店舗 | Vercel Blob のストアID。設定すると Blob モードで動作 |
+| `JWT_SECRET` | 実店舗 | JWT の署名鍵（32文字以上） |
+| `MANAGER_PASSWORD` | 実店舗 | 店長アカウントのパスワード（12文字以上） |
+| `ALLOWED_EMAILS` | 実店舗 | ログインを許可する追加のメールアドレス（カンマ区切り） |
+
+`NEXT_PUBLIC_` で始まる変数はビルド時に画面へ埋め込まれるため、変更したら再デプロイが必要です。
 
 ## ディレクトリ構成
 
 ```
 frontend/
-  app/                  各画面（login, skill-map, staffs, tasks）と API の入口
+  app/                  各画面（login, signup, skill-map, staffs, tasks）と API の入口
   components/           共通ヘッダー・UI部品
-  lib/api.js            クライアント側の API 呼び出し
-  lib/server/data.js    本番用 API（Vercel Blob）
-backend/src/main/java/jp/molino/skill/
-  auth, user            ログイン・ユーザー
-  staff, task, skill    機能別の controller / service / repository / entity
-  security              JWT の発行と検証
-  config                セキュリティ設定・初期データ
+  lib/api.js            クライアント側の API 呼び出しと表示用の定数
+  lib/server/data.js    実店舗向けの API（Vercel Blob）
+backend/
+  Dockerfile            Render で動かすためのイメージ
+  src/main/java/jp/molino/skill/
+    auth, user          新規登録・ログイン・ユーザー
+    staff, task, skill  機能別の controller / service / repository / entity
+    security            JWT の発行と検証
+    config              セキュリティ設定・初期データ
 ```
 
 ## 工夫した点
@@ -124,8 +195,20 @@ backend/src/main/java/jp/molino/skill/
 
 完成後はホテルのレストランの支配人に向けてプレゼンを行い、現場での導入の許可をいただくところまで進めました。
 
+### 公開リポジトリでの秘密情報の扱いを見直した
+
+開発の途中で、公開リポジトリに初期パスワードと JWT の署名鍵が含まれていることに気づきました。秘密情報を環境変数へ移し、新規登録を制限し、安全な設定がないときはサーバーが処理を止める仕組みを入れました。反映の前には本番データのバックアップを取り、反映後に動作を確認しました。
+
 ## 今後の課題
 
 ### 導入の効果を確かめる
 
 アプリは作って導入することがゴールではなく、スタッフの育成に役立つことが目的です。今後は実際に現場で使ってもらい、このアプリによってスタッフのスキルが本当に上がったのかを確かめていきたいと考えています。たとえば、習熟度が上がるまでの期間や「1人でできる」スタッフの人数の変化を見ることで、効果を確認できると考えています。
+
+### 技術面の課題
+
+- バックエンドを Java（Spring Boot）と PostgreSQL に一本化し、実店舗向けの環境も移行する
+- LLM の API を使い、スキルマップから育成の提案を出す機能を追加する
+- controller と service のやり取りを、`Map` から型の決まったクラス（DTO）に置き換える
+- ポジションをデータベースのテーブルで管理し、画面から追加・変更できるようにする
+- 自動テストを追加する

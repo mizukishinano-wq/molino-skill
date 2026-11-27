@@ -33,7 +33,9 @@ export default function TaskCreatePage() {
           </Field>
           <Field label="ポジション" required>
             <select className={inputClass} value={position} onChange={(event) => setPosition(event.target.value)}>
-              {POSITIONS.map((item) => <option key={item}>{item}</option>)}
+              {POSITIONS.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
             </select>
           </Field>
           <div className="mt-6 flex gap-2">
