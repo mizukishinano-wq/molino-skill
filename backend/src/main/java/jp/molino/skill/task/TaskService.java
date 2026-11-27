@@ -27,56 +27,51 @@ public class TaskService {
         this.staffService = staffService;
     }
 
-    public List<Map<String, Object>> list(String position) {
+    public List<TaskResponse> list(String position) {
         return tasks.findAllByOrderByIdAsc().stream()
                 .filter(task -> position == null || position.isBlank() || position.equals("全て") || task.getPosition().equals(position))
                 .sorted(Comparator.comparingInt(TaskOrder::index))
-                .map(this::toMap)
+                .map(this::toResponse)
                 .toList();
     }
 
-    public Map<String, Object> detail(Long id, int minLevel) {
+    public TaskDetailResponse detail(Long id, int minLevel) {
         WorkTask task = find(id);
-        List<Map<String, Object>> people = skills.findByTaskId(id).stream()
+        List<TaskDetailResponse.Person> people = skills.findByTaskId(id).stream()
                 .filter(skill -> skill.getLevel() >= minLevel)
                 .map(skill -> Map.entry(skill, staffService.find(skill.getStaffId())))
                 .filter(entry -> entry.getValue().isActive())
                 .sorted(Comparator.<Map.Entry<Skill, Staff>>comparingInt(entry -> entry.getKey().getLevel()).reversed()
                         .thenComparing(entry -> entry.getValue().getName()))
-                .map(entry -> {
-                    Map<String, Object> person = new LinkedHashMap<>();
-                    person.put("staffId", entry.getValue().getId());
-                    person.put("name", entry.getValue().getName());
-                    person.put("position", entry.getValue().getPosition());
-                    person.put("newcomer", StaffService.isNewcomer(entry.getValue().getJoinDate()));
-                    person.put("level", entry.getKey().getLevel());
-                    person.put("updatedOn", entry.getKey().getUpdatedOn().toString());
-                    return person;
-                })
+                .map(entry -> new TaskDetailResponse.Person(
+                        entry.getValue().getId(),
+                        entry.getValue().getName(),
+                        entry.getValue().getPosition(),
+                        StaffService.isNewcomer(entry.getValue().getJoinDate()),
+                        entry.getKey().getLevel(),
+                        entry.getKey().getUpdatedOn().toString()))
                 .toList();
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("task", toMap(task));
-        body.put("people", people);
-        return body;
+        return new TaskDetailResponse(toResponse(task), people);
     }
 
     @Transactional
-    public Map<String, Object> create(Map<String, String> body) {
+    public TaskResponse create(TaskRequest request) {
         WorkTask task = new WorkTask();
-        apply(task, body);
-        return toMap(tasks.save(task));
+        apply(task, request);
+        return toResponse(tasks.save(task));
     }
 
     @Transactional
-    public Map<String, Object> update(Long id, Map<String, String> body) {
+    public TaskResponse update(Long id, TaskRequest request) {
         WorkTask task = find(id);
-        apply(task, body);
-        return toMap(tasks.save(task));
+        apply(task, request);
+        return toResponse(tasks.save(task));
     }
 
     @Transactional
     public void delete(Long id) {
         find(id);
+        // スキルは仕事を参照しているため、先にスキルを消してから仕事を消す
         skills.deleteByTaskId(id);
         tasks.deleteById(id);
     }
@@ -85,22 +80,18 @@ public class TaskService {
         return tasks.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "仕事が見つかりません"));
     }
 
-    public Map<String, Object> toMap(WorkTask task) {
+    /** 「できる人」（習熟度2以上かつ在籍中）の人数を数えて、画面用の値にする。 */
+    public TaskResponse toResponse(WorkTask task) {
         long capable = skills.findByTaskId(task.getId()).stream()
                 .filter(skill -> skill.getLevel() >= 2)
                 .filter(skill -> staffService.find(skill.getStaffId()).isActive())
                 .count();
-        Map<String, Object> map = new LinkedHashMap<>();
-        map.put("id", task.getId());
-        map.put("name", task.getName());
-        map.put("position", task.getPosition());
-        map.put("capableCount", capable);
-        return map;
+        return TaskResponse.of(task, capable);
     }
 
-    private void apply(WorkTask task, Map<String, String> body) {
-        String name = body.get("name") == null ? "" : body.get("name").trim();
-        String position = body.get("position") == null ? "" : body.get("position").trim();
+    private void apply(WorkTask task, TaskRequest request) {
+        String name = request.name() == null ? "" : request.name().trim();
+        String position = request.position() == null ? "" : request.position().trim();
         Map<String, String> fields = new LinkedHashMap<>();
         if (name.isEmpty()) {
             fields.put("name", "仕事名を入力してください");

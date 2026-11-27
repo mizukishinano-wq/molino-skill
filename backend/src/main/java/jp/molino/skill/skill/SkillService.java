@@ -3,15 +3,15 @@ package jp.molino.skill.skill;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import jp.molino.skill.common.ApiException;
 import jp.molino.skill.common.Positions;
 import jp.molino.skill.common.TaskOrder;
 import jp.molino.skill.staff.Staff;
+import jp.molino.skill.staff.StaffResponse;
 import jp.molino.skill.staff.StaffService;
 import jp.molino.skill.task.TaskRepository;
+import jp.molino.skill.task.TaskResponse;
 import jp.molino.skill.task.TaskService;
 import jp.molino.skill.task.WorkTask;
 import org.springframework.http.HttpStatus;
@@ -32,22 +32,18 @@ public class SkillService {
         this.taskService = taskService;
     }
 
-    public List<Map<String, Object>> staffSkills(Long staffId) {
+    /** スタッフのスキルを、ポジションの順 → 習熟度の高い順 → 仕事名の順に並べて返す。 */
+    public List<StaffSkillResponse> staffSkills(Long staffId) {
         staffService.find(staffId);
         return skills.findByStaffId(staffId).stream()
                 .map(skill -> {
                     WorkTask task = taskService.find(skill.getTaskId());
-                    Map<String, Object> row = new LinkedHashMap<>();
-                    row.put("taskId", task.getId());
-                    row.put("taskName", task.getName());
-                    row.put("position", task.getPosition());
-                    row.put("level", skill.getLevel());
-                    row.put("updatedOn", skill.getUpdatedOn().toString());
-                    return row;
+                    return new StaffSkillResponse(task.getId(), task.getName(), task.getPosition(), skill.getLevel(),
+                            skill.getUpdatedOn().toString());
                 })
-                .sorted(Comparator.<Map<String, Object>>comparingInt(row -> Positions.NAMES.indexOf(row.get("position")))
-                        .thenComparing(Comparator.<Map<String, Object>>comparingInt(row -> (Integer) row.get("level")).reversed())
-                        .thenComparing(row -> String.valueOf(row.get("taskName"))))
+                .sorted(Comparator.comparingInt((StaffSkillResponse row) -> Positions.NAMES.indexOf(row.position()))
+                        .thenComparing(Comparator.comparingInt(StaffSkillResponse::level).reversed())
+                        .thenComparing(StaffSkillResponse::taskName))
                 .toList();
     }
 
@@ -56,12 +52,12 @@ public class SkillService {
      * 途中で1件でも不正な値があれば、@Transactional により全件の変更を取り消す。
      */
     @Transactional
-    public List<Map<String, Object>> saveAll(Long staffId, List<Map<String, Object>> items) {
+    public List<StaffSkillResponse> saveAll(Long staffId, List<SkillSaveRequest.Item> items) {
         staffService.find(staffId);
         if (items == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "保存するスキルがありません");
         }
-        for (Map<String, Object> item : items) {
+        for (SkillSaveRequest.Item item : items) {
             Long taskId = parseTaskId(item);
             taskService.find(taskId);
             int level = parseLevel(item);
@@ -91,18 +87,18 @@ public class SkillService {
         return staffSkills(staffId);
     }
 
-    private Long parseTaskId(Map<String, Object> item) {
+    private Long parseTaskId(SkillSaveRequest.Item item) {
         try {
-            return Long.valueOf(String.valueOf(item == null ? null : item.get("taskId")));
+            return Long.valueOf(String.valueOf(item == null ? null : item.taskId()));
         } catch (NumberFormatException exception) {
             throw new ApiException(HttpStatus.NOT_FOUND, "仕事が見つかりません");
         }
     }
 
-    private int parseLevel(Map<String, Object> item) {
+    private int parseLevel(SkillSaveRequest.Item item) {
         int level;
         try {
-            level = Integer.parseInt(String.valueOf(item.get("level")));
+            level = Integer.parseInt(String.valueOf(item.level()));
         } catch (NumberFormatException exception) {
             level = -1;
         }
@@ -112,17 +108,18 @@ public class SkillService {
         return level;
     }
 
-    public Map<String, Object> map(String position, boolean newcomersOnly) {
+    /** スキルマップの表を作る。在籍中のスタッフだけを対象にし、「できる人」の人数もこの範囲で数える。 */
+    public SkillMapResponse map(String position, boolean newcomersOnly) {
         List<Staff> people = staffService.list(null, null, false).stream()
-                .map(row -> staffService.find(Long.valueOf(String.valueOf(row.get("id")))))
+                .map(row -> staffService.find(row.id()))
                 .filter(staff -> !newcomersOnly || StaffService.isNewcomer(staff.getJoinDate()))
                 .toList();
         List<WorkTask> taskList = tasks.findAllByOrderByIdAsc().stream()
                 .filter(task -> position == null || position.isBlank() || position.equals("全て") || task.getPosition().equals(position))
                 .sorted(Comparator.comparingInt(TaskOrder::index))
                 .toList();
-        List<Map<String, Object>> cells = new ArrayList<>();
-        List<Map<String, Object>> taskRows = new ArrayList<>();
+        List<SkillMapResponse.Cell> cells = new ArrayList<>();
+        List<TaskResponse> taskRows = new ArrayList<>();
         LocalDate latest = null;
         for (WorkTask task : taskList) {
             int capable = 0;
@@ -137,21 +134,12 @@ public class SkillService {
                     if (latest == null || updated.isAfter(latest)) {
                         latest = updated;
                     }
-                    cells.add(Map.of("staffId", staff.getId(), "taskId", task.getId(), "level", level));
+                    cells.add(new SkillMapResponse.Cell(staff.getId(), task.getId(), level));
                 }
             }
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("id", task.getId());
-            row.put("name", task.getName());
-            row.put("position", task.getPosition());
-            row.put("capableCount", capable);
-            taskRows.add(row);
+            taskRows.add(TaskResponse.of(task, capable));
         }
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("staffs", people.stream().map(staffService::toMap).toList());
-        body.put("tasks", taskRows);
-        body.put("cells", cells);
-        body.put("updatedOn", latest == null ? "" : latest.toString());
-        return body;
+        List<StaffResponse> staffRows = people.stream().map(StaffResponse::from).toList();
+        return new SkillMapResponse(staffRows, taskRows, cells, latest == null ? "" : latest.toString());
     }
 }

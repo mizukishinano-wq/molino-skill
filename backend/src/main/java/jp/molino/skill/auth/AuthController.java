@@ -1,6 +1,9 @@
 package jp.molino.skill.auth;
 
-import java.util.Map;
+import jp.molino.skill.auth.AuthDtos.AuthResponse;
+import jp.molino.skill.auth.AuthDtos.LoginRequest;
+import jp.molino.skill.auth.AuthDtos.SignupRequest;
+import jp.molino.skill.auth.AuthDtos.UserResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,17 +20,17 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public Map<String, String> signup(@RequestBody(required = false) Map<String, String> body) {
-        return authService.signup(body == null ? Map.of() : body);
+    public AuthResponse signup(@RequestBody(required = false) SignupRequest request) {
+        return authService.signup(request == null ? new SignupRequest(null, null, null, null) : request);
     }
 
     @PostMapping("/login")
-    public Map<String, String> login(@RequestBody Map<String, String> body) {
-        return authService.login(body);
+    public AuthResponse login(@RequestBody LoginRequest request) {
+        return authService.login(request);
     }
 
     @GetMapping("/me")
-    public Map<String, String> me() {
+    public UserResponse me() {
         return authService.me();
     }
 }

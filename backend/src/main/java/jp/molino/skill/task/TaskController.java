@@ -22,23 +22,23 @@ public class TaskController {
     }
 
     @GetMapping
-    public List<Map<String, Object>> list(@RequestParam(required = false) String position) {
+    public List<TaskResponse> list(@RequestParam(required = false) String position) {
         return taskService.list(position);
     }
 
     @GetMapping("/{id}")
-    public Map<String, Object> detail(@PathVariable Long id, @RequestParam(defaultValue = "2") int minLevel) {
+    public TaskDetailResponse detail(@PathVariable Long id, @RequestParam(defaultValue = "2") int minLevel) {
         return taskService.detail(id, minLevel);
     }
 
     @PostMapping
-    public Map<String, Object> create(@RequestBody Map<String, String> body) {
-        return taskService.create(body);
+    public TaskResponse create(@RequestBody TaskRequest request) {
+        return taskService.create(request);
     }
 
     @PutMapping("/{id}")
-    public Map<String, Object> update(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        return taskService.update(id, body);
+    public TaskResponse update(@PathVariable Long id, @RequestBody TaskRequest request) {
+        return taskService.update(id, request);
     }
 
     @DeleteMapping("/{id}")

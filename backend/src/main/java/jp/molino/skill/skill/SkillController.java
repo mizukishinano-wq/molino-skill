@@ -1,12 +1,10 @@
 package jp.molino.skill.skill;
 
 import java.util.List;
-import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -19,19 +17,19 @@ public class SkillController {
     }
 
     @GetMapping("/api/skill-map")
-    public Map<String, Object> map(
+    public SkillMapResponse map(
             @RequestParam(defaultValue = "全て") String position,
             @RequestParam(defaultValue = "false") boolean newcomersOnly) {
         return skillService.map(position, newcomersOnly);
     }
 
     @GetMapping("/api/staffs/{id}/skills")
-    public List<Map<String, Object>> skills(@PathVariable Long id) {
+    public List<StaffSkillResponse> skills(@PathVariable Long id) {
         return skillService.staffSkills(id);
     }
 
     @PutMapping("/api/staffs/{id}/skills")
-    public List<Map<String, Object>> save(@PathVariable Long id, @RequestBody Map<String, List<Map<String, Object>>> body) {
-        return skillService.saveAll(id, body.get("items"));
+    public List<StaffSkillResponse> save(@PathVariable Long id, @RequestBody SkillSaveRequest request) {
+        return skillService.saveAll(id, request.items());
     }
 }

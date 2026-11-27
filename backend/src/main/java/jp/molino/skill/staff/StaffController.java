@@ -22,7 +22,7 @@ public class StaffController {
     }
 
     @GetMapping
-    public List<Map<String, Object>> list(
+    public List<StaffResponse> list(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String position,
             @RequestParam(defaultValue = "false") boolean includeRetired) {
@@ -30,18 +30,18 @@ public class StaffController {
     }
 
     @GetMapping("/{id}")
-    public Map<String, Object> get(@PathVariable Long id) {
+    public StaffResponse get(@PathVariable Long id) {
         return staffService.get(id);
     }
 
     @PostMapping
-    public Map<String, Object> create(@RequestBody Map<String, String> body) {
-        return staffService.create(body);
+    public StaffResponse create(@RequestBody StaffRequest request) {
+        return staffService.create(request);
     }
 
     @PutMapping("/{id}")
-    public Map<String, Object> update(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        return staffService.update(id, body);
+    public StaffResponse update(@PathVariable Long id, @RequestBody StaffRequest request) {
+        return staffService.update(id, request);
     }
 
     @DeleteMapping("/{id}")

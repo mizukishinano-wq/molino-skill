@@ -22,18 +22,18 @@ public class StaffService {
         this.skills = skills;
     }
 
-    public List<Map<String, Object>> list(String name, String position, boolean includeRetired) {
+    public List<StaffResponse> list(String name, String position, boolean includeRetired) {
         String keyword = name == null ? "" : name.trim();
         return staffs.findAllByOrderByJoinDateAscIdAsc().stream()
                 .filter(staff -> includeRetired || staff.isActive())
                 .filter(staff -> position == null || position.isBlank() || position.equals("全て") || staff.getPosition().equals(position))
                 .filter(staff -> keyword.isEmpty() || staff.getName().contains(keyword))
-                .map(this::toMap)
+                .map(StaffResponse::from)
                 .toList();
     }
 
-    public Map<String, Object> get(Long id) {
-        return toMap(find(id));
+    public StaffResponse get(Long id) {
+        return StaffResponse.from(find(id));
     }
 
     public Staff find(Long id) {
@@ -41,24 +41,24 @@ public class StaffService {
     }
 
     @Transactional
-    public Map<String, Object> create(Map<String, String> body) {
+    public StaffResponse create(StaffRequest request) {
         Staff staff = new Staff();
-        apply(staff, body, true);
+        apply(staff, request);
         staff.setActive(true);
-        return toMap(staffs.save(staff));
+        return StaffResponse.from(staffs.save(staff));
     }
 
     @Transactional
-    public Map<String, Object> update(Long id, Map<String, String> body) {
+    public StaffResponse update(Long id, StaffRequest request) {
         Staff staff = find(id);
-        apply(staff, body, false);
-        String status = text(body.get("status"));
+        apply(staff, request);
+        String status = text(request.status());
         if ("退職".equals(status)) {
             staff.setActive(false);
         } else if ("在籍".equals(status)) {
             staff.setActive(true);
         }
-        return toMap(staffs.save(staff));
+        return StaffResponse.from(staffs.save(staff));
     }
 
     @Transactional
@@ -69,27 +69,14 @@ public class StaffService {
         staffs.deleteById(id);
     }
 
-    public Map<String, Object> toMap(Staff staff) {
-        Map<String, Object> map = new LinkedHashMap<>();
-        map.put("id", staff.getId());
-        map.put("name", staff.getName());
-        map.put("position", staff.getPosition());
-        map.put("joinDate", staff.getJoinDate().toString());
-        map.put("active", staff.isActive());
-        map.put("status", staff.isActive() ? "在籍" : "退職");
-        map.put("newcomer", isNewcomer(staff.getJoinDate()));
-        map.put("note", staff.getNote());
-        return map;
-    }
-
     public static boolean isNewcomer(LocalDate joinDate) {
         return !joinDate.plusMonths(3).isBefore(LocalDate.now());
     }
 
-    private void apply(Staff staff, Map<String, String> body, boolean creating) {
-        String name = text(body.get("name"));
-        String position = text(body.get("position"));
-        String joinDate = text(body.get("joinDate"));
+    private void apply(Staff staff, StaffRequest request) {
+        String name = text(request.name());
+        String position = text(request.position());
+        String joinDate = text(request.joinDate());
         Map<String, String> fields = new LinkedHashMap<>();
         if (name.isEmpty()) {
             fields.put("name", "名前を入力してください");
@@ -109,7 +96,7 @@ public class StaffService {
                 fields.put("joinDate", "入店日の形式が正しくありません");
             }
         }
-        String note = text(body.get("note"));
+        String note = text(request.note());
         if (note.length() > 200) {
             fields.put("note", "コメントは200文字以内で入力してください");
         }

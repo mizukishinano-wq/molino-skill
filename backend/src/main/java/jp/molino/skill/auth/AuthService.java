@@ -3,6 +3,10 @@ package jp.molino.skill.auth;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import jp.molino.skill.auth.AuthDtos.AuthResponse;
+import jp.molino.skill.auth.AuthDtos.LoginRequest;
+import jp.molino.skill.auth.AuthDtos.SignupRequest;
+import jp.molino.skill.auth.AuthDtos.UserResponse;
 import jp.molino.skill.common.ApiException;
 import jp.molino.skill.security.JwtService;
 import jp.molino.skill.user.UserAccount;
@@ -34,14 +38,14 @@ public class AuthService {
         this.allowedUsers = allowedUsers;
     }
 
-    public Map<String, String> signup(Map<String, String> body) {
+    public AuthResponse signup(SignupRequest request) {
         if (!allowedUsers.isOpenSignup()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "新規登録は停止しています。管理者に連絡してください");
         }
-        String name = text(body.get("name"));
-        String email = AllowedUsers.normalize(body.get("email"));
-        String password = body.get("password") == null ? "" : body.get("password");
-        String confirm = body.get("passwordConfirm") == null ? "" : body.get("passwordConfirm");
+        String name = text(request.name());
+        String email = AllowedUsers.normalize(request.email());
+        String password = request.password() == null ? "" : request.password();
+        String confirm = request.passwordConfirm() == null ? "" : request.passwordConfirm();
 
         Map<String, String> fields = new LinkedHashMap<>();
         if (name.isEmpty()) {
@@ -81,9 +85,9 @@ public class AuthService {
         return tokenBody(user);
     }
 
-    public Map<String, String> login(Map<String, String> body) {
-        String email = AllowedUsers.normalize(body.get("email"));
-        String password = body.get("password") == null ? "" : body.get("password");
+    public AuthResponse login(LoginRequest request) {
+        String email = AllowedUsers.normalize(request.email());
+        String password = request.password() == null ? "" : request.password();
         UserAccount user = users.findByEmail(email).orElse(null);
         if (user == null || !allowedUsers.contains(user.getEmail()) || !passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "メールアドレスまたはパスワードが正しくありません");
@@ -91,11 +95,11 @@ public class AuthService {
         return tokenBody(user);
     }
 
-    public Map<String, String> me() {
+    public UserResponse me() {
         String email = currentEmail();
         UserAccount user = users.findByEmail(email)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "ログインしてください"));
-        return Map.of("name", user.getName(), "email", user.getEmail());
+        return new UserResponse(user.getName(), user.getEmail());
     }
 
     public String currentEmail() {
@@ -106,8 +110,8 @@ public class AuthService {
         return authentication.getName();
     }
 
-    private Map<String, String> tokenBody(UserAccount user) {
-        return Map.of("token", jwtService.create(user.getEmail()), "name", user.getName(), "email", user.getEmail());
+    private AuthResponse tokenBody(UserAccount user) {
+        return new AuthResponse(jwtService.create(user.getEmail()), user.getName(), user.getEmail());
     }
 
     private static boolean isEmailFormat(String email) {
