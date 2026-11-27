@@ -31,6 +31,10 @@ public class DataSeeder implements CommandLineRunner {
         this.passwordEncoder = passwordEncoder;
     }
 
+    /**
+     * 起動のたびに実行する。DB が空のときだけ見本データを入れ、
+     * 既にあるデータには、仕事名の変更や統合などの移行処理だけを行う（何度実行しても結果が同じになるように作る）。
+     */
     @Override
     @Transactional
     public void run(String... args) {

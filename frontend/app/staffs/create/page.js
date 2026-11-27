@@ -1,20 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { api, POSITIONS } from "../../../lib/api";
-import { Card, Field, GhostButton, PrimaryButton, inputClass } from "../../../components/ui";
+import { api, errorText, POSITIONS } from "../../../lib/api";
+import { Card, ErrorMessage, Field, GhostButton, PrimaryButton, inputClass } from "../../../components/ui";
 
 export default function StaffCreatePage() {
   const [form, setForm] = useState({ name: "", position: "ドリンク", joinDate: "", note: "" });
   const [fields, setFields] = useState({});
+  const [message, setMessage] = useState("");
 
   async function submit(event) {
     event.preventDefault();
+    setMessage("");
     try {
       const staff = await api("/api/staffs", { method: "POST", body: JSON.stringify(form) });
       window.location.href = "/staffs/" + staff.id;
     } catch (error) {
       setFields(error.fields || {});
+      setMessage(errorText(error));
     }
   }
 
@@ -23,6 +26,7 @@ export default function StaffCreatePage() {
       <h1 className="mb-6 text-2xl font-bold">スタッフを登録</h1>
       <Card className="mx-auto max-w-2xl p-8">
         <form onSubmit={submit}>
+          <ErrorMessage message={message} />
           <Field label="名前" required error={fields.name}>
             <input
               className={inputClass + (fields.name ? " border-red-400" : "")}

@@ -28,6 +28,15 @@ export function GhostButton({ children, onClick, type = "button" }) {
   );
 }
 
+export function ErrorMessage({ message }) {
+  if (!message) return null;
+  return (
+    <p role="alert" className="my-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+      {message}
+    </p>
+  );
+}
+
 export function Card({ children, className = "" }) {
   return <section className={"rounded-xl border border-stone-200 bg-white " + className}>{children}</section>;
 }

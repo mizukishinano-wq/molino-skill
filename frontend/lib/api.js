@@ -51,3 +51,10 @@ export async function api(path, options = {}) {
   }
   return data;
 }
+
+// 通信そのものに失敗したとき（サーバーが止まっている、電波がないなど）、ブラウザは英語のメッセージを返すので日本語に置き換える
+export function errorText(error) {
+  const message = error?.message || "";
+  if (message === "Failed to fetch" || message === "Load failed") return "接続できませんでした。しばらくしてからページを開き直してください。";
+  return message || "エラーが発生しました";
+}

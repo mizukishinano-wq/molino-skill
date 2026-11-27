@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { api, POSITIONS } from "../../../lib/api";
-import { Card, Field, GhostButton, PrimaryButton, inputClass } from "../../../components/ui";
+import { api, errorText, POSITIONS } from "../../../lib/api";
+import { Card, ErrorMessage, Field, GhostButton, PrimaryButton, inputClass } from "../../../components/ui";
 
 export default function TaskCreatePage() {
   const [name, setName] = useState("");
@@ -19,7 +19,7 @@ export default function TaskCreatePage() {
       window.location.href = "/tasks";
     } catch (error) {
       setFields(error.fields || {});
-      setMessage(error.message);
+      setMessage(errorText(error));
     }
   }
 
@@ -28,7 +28,8 @@ export default function TaskCreatePage() {
       <h1 className="mb-6 text-2xl font-bold">仕事を登録</h1>
       <Card className="mx-auto max-w-2xl p-8">
         <form onSubmit={submit}>
-          <Field label="仕事名" required error={fields.name || (!fields.name && message)}>
+          <ErrorMessage message={message} />
+          <Field label="仕事名" required error={fields.name}>
             <input className={inputClass + (fields.name ? " border-red-400" : "")} value={name} onChange={(event) => setName(event.target.value)} />
           </Field>
           <Field label="ポジション" required>

@@ -64,6 +64,7 @@ public class StaffService {
     @Transactional
     public void delete(Long id) {
         find(id);
+        // スキルはスタッフを参照しているため、先にスキルを消してからスタッフを消す
         skills.deleteByStaffId(id);
         staffs.deleteById(id);
     }
@@ -110,7 +111,7 @@ public class StaffService {
         }
         String note = text(body.get("note"));
         if (note.length() > 200) {
-            fields.put("note", "メモは200文字以内で入力してください");
+            fields.put("note", "コメントは200文字以内で入力してください");
         }
         if (!fields.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "入力内容を確認してください", fields);

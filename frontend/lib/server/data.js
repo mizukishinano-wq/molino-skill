@@ -71,10 +71,12 @@ function addMonths(iso, months) {
   return new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), Math.min(day, lastDay))).toISOString().slice(0, 10);
 }
 
+// 新人かどうかは日付で変わるため保存せず、読み出すたびに計算する（入店日から3か月後の当日までが新人）
 function isNewcomer(joinDate) {
   return addMonths(joinDate, 3) >= todayTokyo();
 }
 
+// 仕事を現場の流れの順に並べるための番号。ポジションの順 × 100 ＋ ポジション内の順。正規の一覧にない仕事は後ろに回す
 function taskIndex(position, name) {
   const positionIndex = POSITIONS.indexOf(position);
   const names = TASK_NAMES[position] || [];
@@ -179,6 +181,7 @@ function hashMatches(hash, password) {
   }
 }
 
+// 保存データが欠けていても動くように補う。店長のパスワードは環境変数 MANAGER_PASSWORD に合わせる（変更はこの環境変数で行う）
 function repair(state) {
   let changed = false;
   if (!Array.isArray(state.users)) {
@@ -227,6 +230,8 @@ function repair(state) {
   return changed;
 }
 
+// JSON ファイル全体を読み、処理し、書き戻す。同じサーバー内の処理は queue で1件ずつ順番に実行して、上書きによる更新の消失を防ぐ。
+// ただし別のサーバー（Vercel が複数台で動かした場合）との同時書き込みは防げない
 function withState(write, work) {
   const run = queue.then(async () => {
     const state = await loadState();
@@ -251,6 +256,7 @@ async function tokenFor(email) {
   return new SignJWT({}).setProtectedHeader({ alg: "HS256" }).setSubject(email).setIssuedAt().setExpirationTime("7d").sign(secretKey());
 }
 
+// トークンの署名を確かめたうえで、そのユーザーが今もログインを許可されているかも確認する（許可を外した人の古いトークンを使えなくするため）
 async function requireUser(request, state) {
   const header = request.headers.get("authorization") || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
@@ -303,7 +309,7 @@ function applyStaff(body) {
   if (!joinDate) fields.joinDate = "入店日を入力してください";
   else if (!isRealDate(joinDate)) fields.joinDate = "入店日の形式が正しくありません";
   const note = text(body.note);
-  if (note.length > 200) fields.note = "メモは200文字以内で入力してください";
+  if (note.length > 200) fields.note = "コメントは200文字以内で入力してください";
   if (Object.keys(fields).length) throw new ApiError(400, "入力内容を確認してください", fields);
   return { name, position, joinDate, note };
 }

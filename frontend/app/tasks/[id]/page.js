@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api, LEVELS, levelClass } from "../../../lib/api";
+import { api, errorText, LEVELS, levelClass } from "../../../lib/api";
+import { ErrorMessage } from "../../../components/ui";
 
 const FILTERS = [
   [0, "すべて"],
@@ -17,17 +18,26 @@ export default function TaskDetailPage() {
   const [minLevel, setMinLevel] = useState(2);
   const [data, setData] = useState(null);
   const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    api("/api/tasks/" + id + "?minLevel=" + minLevel).then(setData);
+    setError("");
+    api("/api/tasks/" + id + "?minLevel=" + minLevel)
+      .then(setData)
+      .catch((cause) => setError(errorText(cause)));
   }, [id, minLevel]);
 
   async function remove() {
-    await api("/api/tasks/" + id, { method: "DELETE" });
-    window.location.href = "/tasks";
+    try {
+      await api("/api/tasks/" + id, { method: "DELETE" });
+      window.location.href = "/tasks";
+    } catch (cause) {
+      setConfirming(false);
+      setError(errorText(cause));
+    }
   }
 
-  if (!data) return null;
+  if (!data) return <ErrorMessage message={error} />;
   return (
     <div>
       <div className="mb-4 flex items-start justify-between">
@@ -44,6 +54,7 @@ export default function TaskDetailPage() {
           </button>
         </div>
       </div>
+      <ErrorMessage message={error} />
       <h2 className="mb-3 font-bold">この仕事ができる人</h2>
       <section className="overflow-x-auto rounded-xl border border-stone-200 bg-white p-4">
         <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">

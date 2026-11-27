@@ -2,42 +2,48 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api, POSITIONS } from "../../../../lib/api";
-import { Card, Field, GhostButton, PrimaryButton, inputClass } from "../../../../components/ui";
+import { api, errorText, POSITIONS } from "../../../../lib/api";
+import { Card, ErrorMessage, Field, GhostButton, PrimaryButton, inputClass } from "../../../../components/ui";
 
 export default function StaffEditPage() {
   const { id } = useParams();
   const [form, setForm] = useState(null);
   const [fields, setFields] = useState({});
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    api("/api/staffs/" + id).then((staff) =>
-      setForm({
-        name: staff.name,
-        position: staff.position,
-        joinDate: staff.joinDate,
-        status: staff.status,
-        note: staff.note || "",
-      }),
-    );
+    api("/api/staffs/" + id)
+      .then((staff) =>
+        setForm({
+          name: staff.name,
+          position: staff.position,
+          joinDate: staff.joinDate,
+          status: staff.status,
+          note: staff.note || "",
+        }),
+      )
+      .catch((cause) => setMessage(errorText(cause)));
   }, [id]);
 
   async function submit(event) {
     event.preventDefault();
+    setMessage("");
     try {
       await api("/api/staffs/" + id, { method: "PUT", body: JSON.stringify(form) });
       window.location.href = "/staffs/" + id;
     } catch (error) {
       setFields(error.fields || {});
+      setMessage(errorText(error));
     }
   }
 
-  if (!form) return null;
+  if (!form) return <ErrorMessage message={message} />;
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold">スタッフ編集</h1>
       <Card className="mx-auto max-w-2xl p-8">
         <form onSubmit={submit}>
+          <ErrorMessage message={message} />
           <Field label="名前" required error={fields.name}>
             <input
               className={inputClass + (fields.name ? " border-red-400" : "")}

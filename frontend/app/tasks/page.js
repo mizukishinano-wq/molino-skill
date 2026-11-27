@@ -2,15 +2,19 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { api, POSITIONS } from "../../lib/api";
-import { Card } from "../../components/ui";
+import { api, errorText, POSITIONS } from "../../lib/api";
+import { Card, ErrorMessage } from "../../components/ui";
 
 export default function TaskListPage() {
   const [position, setPosition] = useState("全て");
   const [rows, setRows] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    api("/api/tasks?position=" + encodeURIComponent(position)).then(setRows);
+    setError("");
+    api("/api/tasks?position=" + encodeURIComponent(position))
+      .then(setRows)
+      .catch((cause) => setError(errorText(cause)));
   }, [position]);
 
   const groups = POSITIONS.filter((item) => position === "全て" || position === item);
@@ -35,6 +39,7 @@ export default function TaskListPage() {
         </label>
         <span className="text-sm text-stone-500">全{rows.length}仕事</span>
       </Card>
+      <ErrorMessage message={error} />
       {groups.map((item) => {
         const group = rows.filter((task) => task.position === item);
         if (!group.length) return null;

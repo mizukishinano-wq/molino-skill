@@ -32,6 +32,7 @@ async function proxyToBackend(request) {
   });
 }
 
+// ブラウザからの /api/* はすべてここに届く。BLOB_STORE_ID があれば実店舗向けの JS 実装（data.js）で処理し、なければ Spring Boot へ転送する
 async function dispatch(request, context) {
   if (!process.env.BLOB_STORE_ID) return proxyToBackend(request);
   try {

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { api, LEVELS, LEVEL_MEANINGS, POSITIONS, formatJapaneseDate, formatJoin, levelClass } from "../../lib/api";
+import { api, errorText, LEVELS, LEVEL_MEANINGS, POSITIONS, formatJapaneseDate, formatJoin, levelClass } from "../../lib/api";
+import { ErrorMessage } from "../../components/ui";
 
 const LEGEND = [
   [0, "未経験"],
@@ -17,17 +18,22 @@ export default function SkillMapPage() {
   const [data, setData] = useState(null);
   const [notes, setNotes] = useState({});
   const [noteMessage, setNoteMessage] = useState({});
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams({ position, newcomersOnly });
-    api("/api/skill-map?" + params).then((next) => {
-      setData(next);
-      const initial = {};
-      next.staffs.forEach((staff) => {
-        initial[staff.id] = staff.note || "";
-      });
-      setNotes(initial);
-    });
+    setError("");
+    api("/api/skill-map?" + params)
+      .then((next) => {
+        setData(next);
+        // コメント欄の入力中の値は、保存済みの値とは別に持つ（保存ボタンを押すまで反映しないため）
+        const initial = {};
+        next.staffs.forEach((staff) => {
+          initial[staff.id] = staff.note || "";
+        });
+        setNotes(initial);
+      })
+      .catch((cause) => setError(errorText(cause)));
   }, [position, newcomersOnly]);
 
   async function saveNote(staff) {
@@ -51,7 +57,7 @@ export default function SkillMapPage() {
       }));
       setNoteMessage((current) => ({ ...current, [staff.id]: "保存しました" }));
     } catch (error) {
-      setNoteMessage((current) => ({ ...current, [staff.id]: error.message || "保存できませんでした" }));
+      setNoteMessage((current) => ({ ...current, [staff.id]: errorText(error) }));
     }
   }
 
@@ -82,8 +88,9 @@ export default function SkillMapPage() {
           新人のみ表示
         </label>
       </div>
+      <ErrorMessage message={error} />
       {!data ? (
-        <p>読み込み中...</p>
+        !error && <p>読み込み中...</p>
       ) : (
         <section className="overflow-hidden rounded-xl border border-stone-200 bg-white">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 text-xs text-stone-600">

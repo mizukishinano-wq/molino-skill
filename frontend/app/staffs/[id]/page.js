@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api, LEVELS, POSITIONS, formatJapaneseDate, levelClass } from "../../../lib/api";
+import { api, errorText, LEVELS, POSITIONS, formatJapaneseDate, levelClass } from "../../../lib/api";
+import { ErrorMessage } from "../../../components/ui";
 
 export default function StaffDetailPage() {
   const { id } = useParams();
@@ -12,13 +13,16 @@ export default function StaffDetailPage() {
   const [note, setNote] = useState("");
   const [noteMessage, setNoteMessage] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    api("/api/staffs/" + id).then((next) => {
-      setStaff(next);
-      setNote(next.note || "");
-    });
-    api("/api/staffs/" + id + "/skills").then(setSkills);
+    Promise.all([api("/api/staffs/" + id), api("/api/staffs/" + id + "/skills")])
+      .then(([next, skillRows]) => {
+        setStaff(next);
+        setNote(next.note || "");
+        setSkills(skillRows);
+      })
+      .catch((cause) => setError(errorText(cause)));
   }, [id]);
 
   async function saveNote() {
@@ -38,16 +42,21 @@ export default function StaffDetailPage() {
       setNote(saved.note || "");
       setNoteMessage("保存しました");
     } catch (error) {
-      setNoteMessage(error.message || "保存できませんでした");
+      setNoteMessage(errorText(error));
     }
   }
 
   async function remove() {
-    await api("/api/staffs/" + id, { method: "DELETE" });
-    window.location.href = "/staffs";
+    try {
+      await api("/api/staffs/" + id, { method: "DELETE" });
+      window.location.href = "/staffs";
+    } catch (cause) {
+      setConfirming(false);
+      setError(errorText(cause));
+    }
   }
 
-  if (!staff) return null;
+  if (!staff) return <ErrorMessage message={error} />;
   return (
     <div>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -64,6 +73,7 @@ export default function StaffDetailPage() {
           </button>
         </div>
       </div>
+      <ErrorMessage message={error} />
       <section className="rounded-xl border border-stone-200 bg-white p-5">
         <h2 className="text-xl font-bold">
           {staff.name}

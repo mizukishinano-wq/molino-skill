@@ -19,6 +19,7 @@ import java.util.List;
 public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter) throws Exception {
+        // ログイン状態は Cookie ではなく Authorization ヘッダーの JWT で送るため、CSRF 対策は不要でセッションも使わない
         return http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))

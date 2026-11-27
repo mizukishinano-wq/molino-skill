@@ -2,7 +2,8 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api, LEVELS, LEVEL_MEANINGS, POSITIONS } from "../../../../../lib/api";
+import { api, errorText, LEVELS, LEVEL_MEANINGS, POSITIONS } from "../../../../../lib/api";
+import { ErrorMessage } from "../../../../../components/ui";
 
 export default function SkillEditPage() {
   const { id } = useParams();
@@ -10,31 +11,40 @@ export default function SkillEditPage() {
   const [tasks, setTasks] = useState([]);
   const [levels, setLevels] = useState({});
   const [position, setPosition] = useState("ドリンク");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    api("/api/staffs/" + id).then(setStaff);
-    Promise.all([api("/api/tasks"), api("/api/staffs/" + id + "/skills")]).then(([taskRows, skillRows]) => {
-      setTasks(taskRows);
-      const next = {};
-      taskRows.forEach((task) => {
-        next[task.id] = 0;
-      });
-      skillRows.forEach((skill) => {
-        next[skill.taskId] = skill.level;
-      });
-      setLevels(next);
-    });
+    Promise.all([api("/api/staffs/" + id), api("/api/tasks"), api("/api/staffs/" + id + "/skills")])
+      .then(([staffRow, taskRows, skillRows]) => {
+        setStaff(staffRow);
+        setTasks(taskRows);
+        // 登録されていない仕事は「未登録（0）」として扱い、全仕事の習熟度を画面で選べるようにする
+        const next = {};
+        taskRows.forEach((task) => {
+          next[task.id] = 0;
+        });
+        skillRows.forEach((skill) => {
+          next[skill.taskId] = skill.level;
+        });
+        setLevels(next);
+      })
+      .catch((cause) => setError(errorText(cause)));
   }, [id]);
 
   async function save() {
-    await api("/api/staffs/" + id + "/skills", {
-      method: "PUT",
-      body: JSON.stringify({ items: Object.entries(levels).map(([taskId, level]) => ({ taskId: Number(taskId), level })) }),
-    });
-    window.location.href = "/staffs/" + id;
+    setError("");
+    try {
+      await api("/api/staffs/" + id + "/skills", {
+        method: "PUT",
+        body: JSON.stringify({ items: Object.entries(levels).map(([taskId, level]) => ({ taskId: Number(taskId), level })) }),
+      });
+      window.location.href = "/staffs/" + id;
+    } catch (cause) {
+      setError(errorText(cause));
+    }
   }
 
-  if (!staff) return null;
+  if (!staff) return <ErrorMessage message={error} />;
   const visible = tasks.filter((task) => position === "全て" || task.position === position);
   return (
     <div>
@@ -94,6 +104,7 @@ export default function SkillEditPage() {
         )}
         <p>未登録を選ぶと、そのスキルは削除されます。</p>
       </div>
+      <ErrorMessage message={error} />
       <div className="mt-4 flex gap-2">
         <button className="rounded-md bg-[#1f6b4a] px-4 py-2 text-sm text-white" onClick={save}>
           まとめて保存

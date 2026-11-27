@@ -2,18 +2,22 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { api, POSITIONS } from "../../lib/api";
-import { Card } from "../../components/ui";
+import { api, errorText, POSITIONS } from "../../lib/api";
+import { Card, ErrorMessage } from "../../components/ui";
 
 export default function StaffListPage() {
   const [name, setName] = useState("");
   const [position, setPosition] = useState("全て");
   const [includeRetired, setIncludeRetired] = useState(false);
   const [rows, setRows] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams({ name, position, includeRetired });
-    api("/api/staffs?" + params).then(setRows);
+    setError("");
+    api("/api/staffs?" + params)
+      .then(setRows)
+      .catch((cause) => setError(errorText(cause)));
   }, [name, position, includeRetired]);
 
   return (
@@ -50,6 +54,7 @@ export default function StaffListPage() {
           </label>
         </div>
       </Card>
+      <ErrorMessage message={error} />
       <Card className="overflow-x-auto">
         <div className="flex items-center justify-between px-4 py-3">
           <h2 className="font-bold">スタッフ</h2>

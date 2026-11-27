@@ -51,6 +51,10 @@ public class SkillService {
                 .toList();
     }
 
+    /**
+     * スタッフ1人分のスキルをまとめて保存する。
+     * 途中で1件でも不正な値があれば、@Transactional により全件の変更を取り消す。
+     */
     @Transactional
     public List<Map<String, Object>> saveAll(Long staffId, List<Map<String, Object>> items) {
         staffService.find(staffId);
@@ -62,12 +66,14 @@ public class SkillService {
             taskService.find(taskId);
             int level = parseLevel(item);
             var existing = skills.findByStaffIdAndTaskId(staffId, taskId);
+            // 習熟度0（未登録）は行を持たない。0 に戻されたら行を削除する
             if (level == 0) {
                 existing.ifPresent(skills::delete);
                 continue;
             }
             if (existing.isPresent()) {
                 Skill skill = existing.get();
+                // 最終更新日は「習熟度が変わった日」を表すため、同じ値で保存されたときは更新しない
                 if (skill.getLevel() != level) {
                     skill.setLevel(level);
                     skill.setUpdatedOn(LocalDate.now());

@@ -2,8 +2,8 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api, POSITIONS } from "../../../../lib/api";
-import { Card, Field, GhostButton, PrimaryButton, inputClass } from "../../../../components/ui";
+import { api, errorText, POSITIONS } from "../../../../lib/api";
+import { Card, ErrorMessage, Field, GhostButton, PrimaryButton, inputClass } from "../../../../components/ui";
 
 export default function TaskEditPage() {
   const { id } = useParams();
@@ -12,26 +12,30 @@ export default function TaskEditPage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    api("/api/tasks/" + id + "?minLevel=0").then((data) => setForm({ name: data.task.name, position: data.task.position }));
+    api("/api/tasks/" + id + "?minLevel=0")
+      .then((data) => setForm({ name: data.task.name, position: data.task.position }))
+      .catch((cause) => setMessage(errorText(cause)));
   }, [id]);
 
   async function submit(event) {
     event.preventDefault();
+    setMessage("");
     try {
       await api("/api/tasks/" + id, { method: "PUT", body: JSON.stringify(form) });
       window.location.href = "/tasks/" + id;
     } catch (error) {
       setFields(error.fields || {});
-      setMessage(error.message);
+      setMessage(errorText(error));
     }
   }
 
-  if (!form) return null;
+  if (!form) return <ErrorMessage message={message} />;
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold">仕事を編集</h1>
       <Card className="mx-auto max-w-2xl p-8">
         <form onSubmit={submit}>
+          <ErrorMessage message={message} />
           <Field label="仕事名" required error={fields.name}>
             <input
               className={inputClass + (fields.name ? " border-red-400" : "")}
@@ -52,7 +56,6 @@ export default function TaskEditPage() {
           </div>
         </form>
       </Card>
-      {message && !fields.name && <p className="mx-auto mt-3 max-w-2xl text-sm text-red-600">{message}</p>}
       <p className="mx-auto mt-3 max-w-2xl text-xs text-stone-500">同じポジションに同じ仕事名は登録できません</p>
     </div>
   );

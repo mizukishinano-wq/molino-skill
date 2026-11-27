@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { api, SIGNUP_ENABLED } from "../../lib/api";
+import { api, errorText, SIGNUP_ENABLED } from "../../lib/api";
 
 export default function SignupPage() {
   return SIGNUP_ENABLED ? <SignupForm /> : <SignupClosed />;
@@ -43,9 +43,7 @@ function SignupForm() {
       localStorage.setItem("token", result.token);
       window.location.href = "/skill-map";
     } catch (error) {
-      const message =
-        error.message === "Failed to fetch" || error.message === "Load failed" ? "接続できませんでした。ページを開き直してください。" : error.message;
-      setFields({ ...(error.fields || {}), form: message });
+      setFields({ ...(error.fields || {}), form: errorText(error) });
       setSending(false);
     }
   }
