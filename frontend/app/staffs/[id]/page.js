@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api, errorText, LEVELS, POSITIONS, formatJapaneseDate, levelClass } from "../../../lib/api";
+import { AI_ENABLED, api, errorText, LEVELS, POSITIONS, formatJapaneseDate, levelClass } from "../../../lib/api";
 import { ErrorMessage } from "../../../components/ui";
+import AdvicePanel from "../../../components/AdvicePanel";
 
 export default function StaffDetailPage() {
   const { id } = useParams();
@@ -105,6 +106,7 @@ export default function StaffDetailPage() {
         </button>
         {noteMessage && <p className="mt-2 text-xs text-stone-500">{noteMessage}</p>}
       </section>
+      {AI_ENABLED && staff.active && <AdvicePanel staffId={id} />}
       <h2 className="mb-2 mt-6 font-bold">スキル一覧</h2>
       {POSITIONS.map((position) => {
         const rows = skills.filter((skill) => skill.position === position);

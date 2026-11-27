@@ -47,6 +47,7 @@
 - **スタッフ管理**: 登録・編集・削除、名前検索、ポジションでの絞り込み、退職者の表示切り替え。入店から3か月以内のスタッフは「新人」として表示
 - **スキルの一括編集**: スタッフ1人分の習熟度を1画面でまとめて登録・変更
 - **仕事管理**: 登録・編集・削除、ポジションでの絞り込み。仕事ごとに「できる人」（習熟度2以上・在籍中）を一覧し、習熟度で絞り込み
+- **育成のアドバイス（AI）**: スタッフ詳細のボタンから、次に教えるとよい仕事と理由を AI（Claude）が提案する。教えられる人（習熟度3の在籍中のスタッフ）も一緒に表示する。デモ環境のみ
 - **入力チェック**: サーバー側で検証し、項目ごとに日本語のエラーメッセージを表示
 
 | 習熟度 | 意味 |
@@ -73,6 +74,16 @@
 | [Vercel](https://vercel.com) | Next.js の公開。GitHub の `main` ブランチへの push で自動デプロイ |
 | [Render](https://render.com) | Spring Boot の公開（Docker）と PostgreSQL |
 | [Vercel Blob](https://vercel.com/docs/vercel-blob) | 実店舗向けの環境のデータ保存（下の「2つの環境」を参照） |
+| [Claude API](https://docs.claude.com)（Anthropic） | 育成のアドバイス。モデルは Claude Opus 5.5、Java の公式 SDK（`anthropic-java`）で呼ぶ |
+
+### 育成のアドバイス（AI）の仕組み
+
+1. スタッフ詳細の「アドバイスをもらう」を押すと、`POST /api/staffs/{id}/advice` が呼ばれる
+2. Spring Boot が、そのスタッフのメインポジション、入店からの期間、仕事ごとの習熟度をまとめて Claude API に送る。**スタッフの名前など、個人を特定できる情報は送らない**
+3. Claude は、決めておいた形（構造化出力の JSON）で「次に教える仕事と理由」を返す
+4. Spring Boot は、候補にない仕事名を取り除き、その仕事を教えられる人をデータベースから選んで画面に返す
+
+API キーは Render の環境変数にだけ置き、コードには書いていません。料金は Claude Console の月の支出上限で管理しています。
 
 ## アーキテクチャ
 
@@ -146,6 +157,8 @@ npm run dev        # http://localhost:3000
 | `DATABASE_PASSWORD` | ○ | データベースのパスワード |
 | `JWT_SECRET` | ○ | JWT の署名鍵（32文字以上）。短い値や公開済みの値では起動しません |
 | `OPEN_SIGNUP` | | `true` で新規登録を有効にする（デモ環境） |
+| `ANTHROPIC_API_KEY` | | Claude API のキー。未設定なら育成のアドバイスは 503 を返す |
+| `AI_MODEL` | | 使うモデル（未設定なら `claude-opus-5-5`） |
 | `ALLOWED_EMAILS` | | 新規登録が無効のとき、ログインを許可する追加のメールアドレス（カンマ区切り） |
 
 ### フロントエンド（Vercel）
@@ -155,6 +168,7 @@ npm run dev        # http://localhost:3000
 | `BACKEND_URL` | デモ | Spring Boot の URL |
 | `NEXT_PUBLIC_APP_NAME` | デモ | 画面に表示する会社名（未設定なら「ホテルモリノ」） |
 | `NEXT_PUBLIC_SIGNUP_ENABLED` | デモ | `true` で新規登録画面とリンクを表示 |
+| `NEXT_PUBLIC_AI_ENABLED` | デモ | `true` でスタッフ詳細に育成のアドバイスを表示 |
 | `BLOB_STORE_ID` | 実店舗 | Vercel Blob のストアID。設定すると Blob モードで動作 |
 | `JWT_SECRET` | 実店舗 | JWT の署名鍵（32文字以上） |
 | `MANAGER_PASSWORD` | 実店舗 | 店長アカウントのパスワード（12文字以上） |
@@ -174,7 +188,8 @@ backend/
   Dockerfile            Render で動かすためのイメージ
   src/main/java/jp/molino/skill/
     auth, user          新規登録・ログイン・ユーザー
-    staff, task, skill  機能別の controller / service / repository / entity
+    staff, task, skill  機能別の controller / service / repository / entity / DTO（record）
+    advice              育成のアドバイス（Claude API の呼び出し）
     security            JWT の発行と検証
     config              セキュリティ設定・初期データ
 ```
@@ -208,7 +223,6 @@ backend/
 ### 技術面の課題
 
 - バックエンドを Java（Spring Boot）と PostgreSQL に一本化し、実店舗向けの環境も移行する
-- LLM の API を使い、スキルマップから育成の提案を出す機能を追加する
-- controller と service のやり取りを、`Map` から型の決まったクラス（DTO）に置き換える
 - ポジションをデータベースのテーブルで管理し、画面から追加・変更できるようにする
-- 自動テストを追加する
+- 自動テストを増やす（今は育成のアドバイスの単体テストだけ）。GitHub Actions で push のたびに実行する
+- 育成のアドバイスの使用回数に、アプリ側でも上限を設ける
