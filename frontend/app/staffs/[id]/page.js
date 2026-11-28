@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AI_ENABLED, api, errorText, LEVELS, POSITIONS, formatJapaneseDate, levelClass } from "../../../lib/api";
+import { AI_ENABLED, api, errorText, LEVELS, NOTE_MAX_LENGTH, POSITIONS, formatJapaneseDate, levelClass, saveStaffNote } from "../../../lib/api";
 import { ErrorMessage } from "../../../components/ui";
 import AdvicePanel from "../../../components/AdvicePanel";
 
@@ -29,16 +29,7 @@ export default function StaffDetailPage() {
   async function saveNote() {
     setNoteMessage("");
     try {
-      const saved = await api("/api/staffs/" + id, {
-        method: "PUT",
-        body: JSON.stringify({
-          name: staff.name,
-          position: staff.position,
-          joinDate: staff.joinDate,
-          status: staff.status,
-          note,
-        }),
-      });
+      const saved = await saveStaffNote(staff, note);
       setStaff(saved);
       setNote(saved.note || "");
       setNoteMessage("保存しました");
@@ -80,7 +71,7 @@ export default function StaffDetailPage() {
           {staff.name}
           {staff.newcomer && <span className="ml-2 rounded bg-[#e5f5ec] px-2 py-0.5 text-xs font-normal text-[#1f6b4a]">新人</span>}
         </h2>
-        <div className="mt-4 grid grid-cols-3 text-sm text-stone-500">
+        <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-stone-500 sm:grid-cols-3">
           <div>
             メインポジション<div className="mt-1 text-stone-800">{staff.position}</div>
           </div>
@@ -94,13 +85,14 @@ export default function StaffDetailPage() {
         <label className="mt-4 block text-sm text-stone-500">
           コメント
           <textarea
-            className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-stone-800"
-            rows={3}
-            maxLength={200}
+            className="mt-1 min-h-24 w-full rounded-md border border-stone-300 px-3 py-2 text-stone-800 field-sizing-content"
+            rows={4}
+            maxLength={NOTE_MAX_LENGTH}
             value={note}
             onChange={(event) => setNote(event.target.value)}
           />
         </label>
+        <p className="mt-1 text-xs text-stone-400">改行すると、スキルマップと注意事項で箇条書きで表示されます。{NOTE_MAX_LENGTH}文字まで</p>
         <button type="button" className="mt-2 rounded-md bg-[#1f6b4a] px-3 py-1.5 text-sm text-white" onClick={saveNote}>
           コメントを保存
         </button>
@@ -116,18 +108,22 @@ export default function StaffDetailPage() {
             <h3 className="bg-stone-50 px-4 py-2 text-sm font-bold">
               {position} <span className="font-normal text-stone-500">{rows.length}仕事</span>
             </h3>
-            <div className="grid grid-cols-3 bg-stone-50 px-4 py-2 text-xs text-stone-500">
+            <div className="hidden grid-cols-3 bg-stone-50 px-4 py-2 text-xs text-stone-500 sm:grid">
               <span>仕事名</span>
               <span>習熟度</span>
               <span>最終更新日</span>
             </div>
+            {/* スマホでは仕事名を1行目に、習熟度と更新日を2行目に並べる */}
             {rows.map((skill) => (
-              <div key={skill.taskId} className="grid grid-cols-3 items-center border-t px-4 py-3 text-sm">
-                <span className="text-[#1f6b4a]">{skill.taskName}</span>
+              <div key={skill.taskId} className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 border-t px-4 py-3 text-sm sm:grid-cols-3">
+                <span className="col-span-2 text-[#1f6b4a] sm:col-span-1">{skill.taskName}</span>
                 <span className={"w-fit rounded-md px-3 py-1 text-xs " + levelClass(skill.level)}>
                   {skill.level} {LEVELS[skill.level]}
                 </span>
-                <span>{skill.updatedOn}</span>
+                <span className="text-right text-xs text-stone-500 sm:text-left sm:text-sm sm:text-stone-800">
+                  {skill.updatedOn ? <span className="sm:hidden">更新 </span> : null}
+                  {skill.updatedOn}
+                </span>
               </div>
             ))}
           </section>

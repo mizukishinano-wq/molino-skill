@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { api, errorText, POSITIONS } from "../../lib/api";
+import { api, errorText, POSITIONS, formatJapaneseDate } from "../../lib/api";
 import { Card, ErrorMessage } from "../../components/ui";
 
 export default function StaffListPage() {
@@ -22,18 +22,18 @@ export default function StaffListPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">スタッフ一覧</h1>
         <Link href="/staffs/create" className="rounded-md bg-[#1f6b4a] px-4 py-2 text-sm text-white">
           スタッフを登録
         </Link>
       </div>
       <Card className="mb-4 p-4">
-        <div className="flex flex-wrap items-end gap-6">
-          <label className="text-sm">
+        <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
+          <label className="w-full text-sm sm:w-auto">
             名前検索
             <input
-              className="mt-1 block w-64 rounded-md border border-stone-300 px-3 py-2"
+              className="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 sm:w-64"
               placeholder="名前で検索"
               value={name}
               onChange={(event) => setName(event.target.value)}
@@ -60,7 +60,26 @@ export default function StaffListPage() {
           <h2 className="font-bold">スタッフ</h2>
           <span className="text-sm text-stone-500">{rows.length}名</span>
         </div>
-        <table className="w-full min-w-[640px] text-sm">
+        {/* スマホでは横スクロールの表をやめ、1人1行のリストにする。行全体を押せば詳細へ進む */}
+        <ul className="border-t md:hidden">
+          {rows.map((staff) => (
+            <li key={staff.id} className="border-b last:border-b-0">
+              <Link className="flex items-center justify-between gap-3 px-4 py-3" href={"/staffs/" + staff.id}>
+                <div className="min-w-0">
+                  <span className="font-medium text-[#1f6b4a]">{staff.name}</span>
+                  {staff.newcomer && <span className="ml-2 rounded bg-[#e5f5ec] px-1.5 py-0.5 text-xs text-[#1f6b4a]">新人</span>}
+                  <div className="mt-0.5 text-xs text-stone-500">
+                    {staff.position} ・ {formatJapaneseDate(staff.joinDate)}入店
+                  </div>
+                </div>
+                <span className={"shrink-0 text-xs " + (staff.active ? "text-stone-500" : "rounded bg-stone-100 px-2 py-0.5 text-stone-600")}>
+                  {staff.status}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <table className="hidden w-full min-w-[640px] text-sm md:table">
           <thead className="bg-stone-50 text-left text-stone-500">
             <tr>
               <th className="p-3 font-normal">名前</th>

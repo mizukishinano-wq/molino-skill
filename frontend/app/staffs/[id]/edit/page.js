@@ -80,7 +80,7 @@ export default function StaffEditPage() {
             </div>
             <p className="mt-2 text-xs text-stone-500">退職にすると、スキルマップ、スタッフ一覧、できる人一覧に表示されなくなります。データは残ります</p>
           </fieldset>
-          <Field label="コメント" hint="スキルマップの名前の下に出ます。200文字まで" error={fields.note}>
+          <Field label="コメント" hint="スキルマップと注意事項に出ます。改行すると箇条書きで表示されます。200文字まで" error={fields.note}>
             <textarea
               className={inputClass + (fields.note ? " border-red-400" : "")}
               rows={3}

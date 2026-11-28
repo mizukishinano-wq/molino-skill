@@ -7,6 +7,7 @@ import { api, APP_NAME } from "../lib/api";
 
 const LINKS = [
   ["/skill-map", "スキルマップ"],
+  ["/notes", "注意事項"],
   ["/staffs", "スタッフ一覧"],
   ["/tasks", "仕事一覧"],
 ];

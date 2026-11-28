@@ -5,6 +5,7 @@ export const SIGNUP_ENABLED = process.env.NEXT_PUBLIC_SIGNUP_ENABLED === "true";
 export const AI_ENABLED = process.env.NEXT_PUBLIC_AI_ENABLED === "true";
 
 export const POSITIONS = ["朝食", "ドリンク", "フリー", "デシャップ", "入口", "8階", "ディナー", "営業外"];
+export const NOTE_MAX_LENGTH = 200; // サーバー側（Java と data.js）の上限と同じ
 export const LEVELS = ["未経験", "教わった", "1人でできる", "教えられる"];
 export const LEVEL_MEANINGS = [
   "",
@@ -52,6 +53,20 @@ export async function api(path, options = {}) {
     throw error;
   }
   return data;
+}
+
+// コメントだけを変えるときも、更新 API はスタッフの全項目を受け取るので、ほかの項目は今の値をそのまま送る
+export function saveStaffNote(staff, note) {
+  return api("/api/staffs/" + staff.id, {
+    method: "PUT",
+    body: JSON.stringify({
+      name: staff.name,
+      position: staff.position,
+      joinDate: staff.joinDate,
+      status: staff.status,
+      note,
+    }),
+  });
 }
 
 // 通信そのものに失敗したとき（サーバーが止まっている、電波がないなど）、ブラウザは英語のメッセージを返すので日本語に置き換える

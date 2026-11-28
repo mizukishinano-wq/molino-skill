@@ -49,7 +49,7 @@ export default function StaffCreatePage() {
               onChange={(event) => setForm({ ...form, joinDate: event.target.value })}
             />
           </Field>
-          <Field label="コメント" hint="スキルマップの名前の下に出ます。200文字まで" error={fields.note}>
+          <Field label="コメント" hint="スキルマップと注意事項に出ます。改行すると箇条書きで表示されます。200文字まで" error={fields.note}>
             <textarea
               className={inputClass + (fields.note ? " border-red-400" : "")}
               rows={3}

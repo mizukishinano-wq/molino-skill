@@ -56,7 +56,7 @@ export default function SkillEditPage() {
           <button
             key={item}
             type="button"
-            className={"rounded-lg px-4 py-2 text-sm " + (position === item ? "bg-[#1f6b4a] text-white" : "border border-stone-300 bg-white")}
+            className={"shrink-0 rounded-lg px-4 py-2 text-sm " + (position === item ? "bg-[#1f6b4a] text-white" : "border border-stone-300 bg-white")}
             onClick={() => setPosition(item)}
           >
             {item}
@@ -68,21 +68,26 @@ export default function SkillEditPage() {
           <span className="font-bold">{position}</span>
           <span className="text-stone-500">{visible.length}仕事</span>
         </div>
-        <div className="grid grid-cols-[180px_1fr] bg-stone-50 px-4 py-2 text-xs text-stone-500">
+        <div className="hidden grid-cols-[180px_1fr] bg-stone-50 px-4 py-2 text-xs text-stone-500 sm:grid">
           <span>仕事名</span>
           <span>習熟度</span>
         </div>
+        {/* スマホでは仕事名の下にボタンを2列で並べ、指で押しやすい大きさにする */}
         {visible.map((task) => (
-          <div key={task.id} className="grid grid-cols-[180px_1fr] items-center border-t px-4 py-3 text-sm">
+          <div key={task.id} className="grid items-center gap-2 border-t px-4 py-3 text-sm sm:grid-cols-[180px_1fr]">
             <span className="text-[#1f6b4a]">{task.name}</span>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
               {LEVELS.map((label, level) => {
                 const selected = levels[task.id] === level;
                 return (
                   <button
                     key={label}
                     type="button"
-                    className={"rounded-md border px-3 py-1 text-xs " + (selected ? "border-[#1f6b4a] bg-[#1f6b4a] text-white" : "border-stone-300 bg-white")}
+                    aria-pressed={selected}
+                    className={
+                      "rounded-md border px-3 py-2 text-sm sm:py-1 sm:text-xs " +
+                      (selected ? "border-[#1f6b4a] bg-[#1f6b4a] text-white" : "border-stone-300 bg-white")
+                    }
                     onClick={() => setLevels({ ...levels, [task.id]: level })}
                   >
                     {level === 0 ? "未登録" : level + " " + label}
@@ -105,7 +110,8 @@ export default function SkillEditPage() {
         <p>未登録を選ぶと、そのスキルは削除されます。</p>
       </div>
       <ErrorMessage message={error} />
-      <div className="mt-4 flex gap-2">
+      {/* 仕事が多く縦に長いので、スクロールしても保存ボタンが画面の下に残るようにする */}
+      <div className="sticky bottom-0 -mx-4 mt-4 flex gap-2 border-t border-stone-200 bg-[#f6f5f2]/95 px-4 py-3 md:static md:mx-0 md:border-0 md:bg-transparent md:px-0 md:py-0">
         <button className="rounded-md bg-[#1f6b4a] px-4 py-2 text-sm text-white" onClick={save}>
           まとめて保存
         </button>
