@@ -9,9 +9,6 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@vercel/blob": "^2.8.2",
-    "bcryptjs": "^3.0.3",
-    "jose": "^6.2.15",
     "next": "^15.5.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"

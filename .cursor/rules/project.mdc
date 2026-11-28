@@ -8,12 +8,12 @@ alwaysApply: true
 - 店長がスタッフごと・仕事ごとの習熟度を記録し、スキルマップで確認するアプリ。UI とエラーメッセージは日本語
 - フロントエンド: Next.js 15（App Router）、React 19、Tailwind CSS v4、JavaScript（TypeScript は使わない）
 - バックエンド: Spring Boot 3.5（Java 21）、Spring Security、Spring Data JPA、JWT
-- データ: ローカルは H2、デモは PostgreSQL（Render）、実店舗向けは Vercel Blob
+- データ: ローカルは H2、デモは PostgreSQL（Render）。このリポジトリはデモ用で、実店舗向けの環境は別の非公開リポジトリで管理している
 
 # 守ること
 
-- API と業務ルールは `backend/src/main/java/jp/molino/skill/` と `frontend/lib/server/data.js` の2か所で実装している。変更するときは両方を同じ仕様にする（ルート、レスポンス形式、検証、日本語メッセージ）
-- エラーは `{ message, fields }` の形式で返す。Java は `ApiException`、JS は `ApiError` を投げる
+- API と業務ルールは `backend/src/main/java/jp/molino/skill/` で実装する。画面は `frontend/app/api/[...path]/route.js` を通して Spring Boot を呼ぶ
+- エラーは `{ message, fields }` の形式で返す。Java は `ApiException` を投げる
 - 入力チェックはサーバー側で必ず行う。画面側のチェックは使いやすさのためだけ
 - 秘密情報（パスワード、署名鍵、DB の接続情報、API キー）はコードに書かず、環境変数で管理する。このリポジトリは公開されている
 - 新しい API を追加するときは、認証が必要かを確認する。認証なしで呼べるのは login と signup だけ

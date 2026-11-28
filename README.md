@@ -73,7 +73,6 @@
 | --- | --- |
 | [Vercel](https://vercel.com) | Next.js の公開。GitHub の `main` ブランチへの push で自動デプロイ |
 | [Render](https://render.com) | Spring Boot の公開（Docker）と PostgreSQL |
-| [Vercel Blob](https://vercel.com/docs/vercel-blob) | 実店舗向けの環境のデータ保存（下の「2つの環境」を参照） |
 | [Claude API](https://docs.claude.com)（Anthropic） | 育成のアドバイス。モデルは Claude Opus 5.5、Java の公式 SDK（`anthropic-java`）で呼ぶ |
 
 ### 育成のアドバイス（AI）の仕組み
@@ -87,30 +86,21 @@ API キーは Render の環境変数にだけ置き、コードには書いて�
 
 ## アーキテクチャ
 
-ブラウザは Next.js の `/api/*` だけを呼び出し、Next.js（`frontend/app/api/[...path]/route.js`）が環境変数に応じて処理先を切り替えます。
+ブラウザは Next.js の `/api/*` だけを呼び出し、Next.js（`frontend/app/api/[...path]/route.js`）が Spring Boot へ転送します。
 
 ```
 【デモ環境】
 ブラウザ ──> Vercel（Next.js） ──> Render（Spring Boot） ──> PostgreSQL
 
-【実店舗向けの環境】
-ブラウザ ──> Vercel（Next.js） ──> frontend/lib/server/data.js ──> Vercel Blob
-
 【ローカル開発】
 ブラウザ ──> Next.js（localhost:3000） ──> Spring Boot（localhost:8080） ──> H2
 ```
 
-| 環境変数 | 処理先 |
-| --- | --- |
-| `BLOB_STORE_ID` あり | `frontend/lib/server/data.js`（JavaScript）と Vercel Blob |
-| `BLOB_STORE_ID` なし | `BACKEND_URL`（未設定なら `localhost:8080`）の Spring Boot |
+### このリポジトリとお店で使っている環境
 
-### 2つの環境がある理由
+このリポジトリは、架空の会社のデータで動くデモ用です。スクールで学んだ Java を実際に公開して使い、controller / service / repository に分けた業務システムの構成を学ぶために作っています。
 
-- **デモ環境（Java）**: スクールで学んだ Java を実際に公開して使い、controller / service / repository に分けた業務システムの構成と、PostgreSQL によるデータ管理を学ぶために構築しています。就職活動で見せるため、架空の会社のデータで動かしています
-- **実店舗向けの環境（JavaScript）**: アルバイト先で実際に使ってもらうため、先に Vercel だけで動く形で公開しました。Vercel では Spring Boot のような常に起動しているサーバーを動かせないため、API を Next.js の API Route で実装し、データを Vercel Blob に保存しています
-
-同じ API を2つの言語で実装しているため、修正のたびに両方を直す手間があります。今後は Java（Spring Boot）と PostgreSQL に一本化する予定です。
+アルバイト先のお店で実際に使っている環境は、実在のスタッフのデータを扱うため、別の非公開リポジトリで管理しています。
 
 ## ローカルでの起動方法
 
@@ -139,7 +129,7 @@ npm run dev        # http://localhost:3000
 
 ### 3. ログイン
 
-ローカル環境とデモ環境では、次のアカウントでログインできます。実店舗向けの環境ではこのパスワードは使えません。
+ローカル環境とデモ環境では、次のアカウントでログインできます。
 
 - メール: `sato@example.com`
 - パスワード: `password123`
@@ -166,13 +156,9 @@ npm run dev        # http://localhost:3000
 | 変数名 | 対象 | 説明 |
 | --- | --- | --- |
 | `BACKEND_URL` | デモ | Spring Boot の URL |
-| `NEXT_PUBLIC_APP_NAME` | デモ | 画面に表示する会社名（未設定なら「ホテルモリノ」） |
+| `NEXT_PUBLIC_APP_NAME` | デモ | 画面に表示する会社名（未設定なら「Nexora」） |
 | `NEXT_PUBLIC_SIGNUP_ENABLED` | デモ | `true` で新規登録画面とリンクを表示 |
 | `NEXT_PUBLIC_AI_ENABLED` | デモ | `true` でスタッフ詳細に育成のアドバイスを表示 |
-| `BLOB_STORE_ID` | 実店舗 | Vercel Blob のストアID。設定すると Blob モードで動作 |
-| `JWT_SECRET` | 実店舗 | JWT の署名鍵（32文字以上） |
-| `MANAGER_PASSWORD` | 実店舗 | 店長アカウントのパスワード（12文字以上） |
-| `ALLOWED_EMAILS` | 実店舗 | ログインを許可する追加のメールアドレス（カンマ区切り） |
 
 `NEXT_PUBLIC_` で始まる変数はビルド時に画面へ埋め込まれるため、変更したら再デプロイが必要です。
 
@@ -183,7 +169,6 @@ frontend/
   app/                  各画面（login, signup, skill-map, staffs, tasks）と API の入口
   components/           共通ヘッダー・UI部品
   lib/api.js            クライアント側の API 呼び出しと表示用の定数
-  lib/server/data.js    実店舗向けの API（Vercel Blob）
 backend/
   Dockerfile            Render で動かすためのイメージ
   src/main/java/jp/molino/skill/
@@ -222,7 +207,7 @@ backend/
 
 ### 技術面の課題
 
-- バックエンドを Java（Spring Boot）と PostgreSQL に一本化し、実店舗向けの環境も移行する
+- データベースを Supabase に移し、ログインを Supabase Auth にする（作業中）
 - ポジションをデータベースのテーブルで管理し、画面から追加・変更できるようにする
 - 自動テストを増やす（今は育成のアドバイスの単体テストだけ）。GitHub Actions で push のたびに実行する
 - 育成のアドバイスの使用回数に、アプリ側でも上限を設ける
